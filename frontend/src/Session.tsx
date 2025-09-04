@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 interface SessionProps {
   studentId: number
@@ -16,7 +16,7 @@ interface Turn {
   text: string
 }
 
-function Session({ studentId, studentName, assignmentId, assignmentTitle, onComplete, onCancel }: SessionProps) {
+function Session({ studentName, assignmentTitle, onComplete, onCancel }: SessionProps) {
   const [timeLeft, setTimeLeft] = useState(600) // 10 minutes in seconds
   const [status, setStatus] = useState<ConversationStatus>('idle')
   const [transcript, setTranscript] = useState<Turn[]>([])
@@ -63,7 +63,7 @@ function Session({ studentId, studentName, assignmentId, assignmentTitle, onComp
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [isStarted, timeLeft])
+  }, [isStarted, timeLeft, handleSubmit])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -100,11 +100,11 @@ function Session({ studentId, studentName, assignmentId, assignmentTitle, onComp
     setStatus('idle')
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current)
     setIsStarted(false)
     onComplete(transcript)
-  }
+  }, [transcript, onComplete])
 
   const handleQuickSubmit = () => {
     // For testing - submit early with current transcript
