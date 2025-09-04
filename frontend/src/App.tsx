@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import Session from './Session'
+import Results from './Results'
 
 interface Student {
   id: number
@@ -12,13 +14,17 @@ interface Assignment {
   description: string
 }
 
+type AppView = 'selection' | 'session' | 'results'
+
 function App() {
+  const [currentView, setCurrentView] = useState<AppView>('selection')
   const [students, setStudents] = useState<Student[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [selectedStudent, setSelectedStudent] = useState<string>('')
   const [selectedAssignment, setSelectedAssignment] = useState<string>('')
   const [isReady, setIsReady] = useState(false)
   const [message, setMessage] = useState<string>('')
+  const [sessionTranscript, setSessionTranscript] = useState<any[]>([])
   
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   
@@ -53,84 +59,150 @@ function App() {
 
   const handleStartSession = () => {
     if (!isReady) return
-    
-    // For now, just show what was selected
-    const student = students.find(s => s.id === parseInt(selectedStudent))
-    const assignment = assignments.find(a => a.id === parseInt(selectedAssignment))
-    
-    alert(`Starting session:\nStudent: ${student?.name}\nAssignment: ${assignment?.title}`)
+    setCurrentView('session')
   }
+
+  const handleSessionComplete = async (transcript: any[]) => {
+    setSessionTranscript(transcript)
+    
+    // Submit to backend
+    try {
+      const response = await fetch(`${apiUrl}/sessions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          student_id: parseInt(selectedStudent),
+          assignment_id: parseInt(selectedAssignment),
+          transcript: transcript,
+          duration_seconds: 600 - transcript.length * 15 // Mock duration calculation
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.error) {
+        alert(data.error)
+        setCurrentView('selection')
+      } else {
+        // Store the score and feedback from backend
+        sessionStorage.setItem('lastScore', data.score)
+        sessionStorage.setItem('lastScoreCategory', data.score_category)
+        sessionStorage.setItem('lastFeedback', data.feedback)
+        setCurrentView('results')
+      }
+    } catch (error) {
+      alert('Error submitting session')
+      setCurrentView('results') // Still show results even if submission failed
+    }
+  }
+
+  const handleBackToHome = () => {
+    setCurrentView('selection')
+    setSelectedStudent('')
+    setSelectedAssignment('')
+    setSessionTranscript([])
+  }
+
+  const student = students.find(s => s.id === parseInt(selectedStudent))
+  const assignment = assignments.find(a => a.id === parseInt(selectedAssignment))
 
   return (
     <>
       <h1>Oral Assessment Tool</h1>
       
-      <div className="card">
-        <h2>Start Assessment</h2>
-        
-        <div style={{ marginBottom: '20px' }}>
-          <label htmlFor="student-select" style={{ display: 'block', marginBottom: '5px' }}>
-            1. Select your name:
-          </label>
-          <select 
-            id="student-select"
-            value={selectedStudent} 
-            onChange={(e) => setSelectedStudent(e.target.value)}
-            style={{ width: '100%', padding: '8px', fontSize: '16px' }}
-          >
-            <option value="">-- Choose Student --</option>
-            {students.map(student => (
-              <option key={student.id} value={student.id}>
-                {student.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      {currentView === 'selection' && (
+        <div className="card">
+          <h2>Start Assessment</h2>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <label htmlFor="student-select" style={{ display: 'block', marginBottom: '5px' }}>
+              1. Select your name:
+            </label>
+            <select 
+              id="student-select"
+              value={selectedStudent} 
+              onChange={(e) => setSelectedStudent(e.target.value)}
+              style={{ width: '100%', padding: '8px', fontSize: '16px' }}
+            >
+              <option value="">-- Choose Student --</option>
+              {students.map(student => (
+                <option key={student.id} value={student.id}>
+                  {student.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label htmlFor="assignment-select" style={{ display: 'block', marginBottom: '5px' }}>
-            2. Select assignment:
-          </label>
-          <select 
-            id="assignment-select"
-            value={selectedAssignment} 
-            onChange={(e) => setSelectedAssignment(e.target.value)}
-            style={{ width: '100%', padding: '8px', fontSize: '16px' }}
-            disabled={!selectedStudent}
-          >
-            <option value="">-- Choose Assignment --</option>
-            {assignments.map(assignment => (
-              <option key={assignment.id} value={assignment.id}>
-                {assignment.title}
-              </option>
-            ))}
-          </select>
-          {selectedAssignment && (
-            <p style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-              {assignments.find(a => a.id === parseInt(selectedAssignment))?.description}
-            </p>
-          )}
-        </div>
+          <div style={{ marginBottom: '20px' }}>
+            <label htmlFor="assignment-select" style={{ display: 'block', marginBottom: '5px' }}>
+              2. Select assignment:
+            </label>
+            <select 
+              id="assignment-select"
+              value={selectedAssignment} 
+              onChange={(e) => setSelectedAssignment(e.target.value)}
+              style={{ width: '100%', padding: '8px', fontSize: '16px' }}
+              disabled={!selectedStudent}
+            >
+              <option value="">-- Choose Assignment --</option>
+              {assignments.map(assignment => (
+                <option key={assignment.id} value={assignment.id}>
+                  {assignment.title}
+                </option>
+              ))}
+            </select>
+            {selectedAssignment && (
+              <p style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+                {assignment?.description}
+              </p>
+            )}
+          </div>
 
-        <button 
-          onClick={handleStartSession}
-          disabled={!isReady}
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '18px',
-            backgroundColor: isReady ? '#4CAF50' : '#ccc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isReady ? 'pointer' : 'not-allowed'
-          }}
-        >
-          Start Assessment
-        </button>
-        
-        {message && <p>{message}</p>}
-      </div>
+          <button 
+            onClick={handleStartSession}
+            disabled={!isReady}
+            style={{
+              width: '100%',
+              padding: '12px',
+              fontSize: '18px',
+              backgroundColor: isReady ? '#4CAF50' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isReady ? 'pointer' : 'not-allowed'
+            }}
+          >
+            Start Assessment
+          </button>
+          
+          {message && <p>{message}</p>}
+        </div>
+      )}
+
+      {currentView === 'session' && student && assignment && (
+        <Session
+          studentId={student.id}
+          studentName={student.name}
+          assignmentId={assignment.id}
+          assignmentTitle={assignment.title}
+          onComplete={handleSessionComplete}
+          onCancel={handleBackToHome}
+        />
+      )}
+
+      {currentView === 'results' && student && assignment && (
+        <Results
+          studentName={student.name}
+          assignmentTitle={assignment.title}
+          transcript={sessionTranscript}
+          score={parseInt(sessionStorage.getItem('lastScore') || '85')}
+          scoreCategory={sessionStorage.getItem('lastScoreCategory') || 'green'}
+          feedback={sessionStorage.getItem('lastFeedback') || 'Good analysis with clear examples.'}
+          onBack={handleBackToHome}
+        />
+      )}
     </>
   )
 }
