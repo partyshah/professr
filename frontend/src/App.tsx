@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, Link } from 'react-router-dom'
 import './App.css'
 import Session from './Session'
 import Results from './Results'
@@ -17,7 +18,8 @@ interface Assignment {
 
 type AppView = 'selection' | 'session' | 'results'
 
-function App() {
+// Create a separate component for the student flow
+function StudentFlow() {
   const [currentView, setCurrentView] = useState<AppView>('selection')
   const [students, setStudents] = useState<Student[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
@@ -28,24 +30,10 @@ function App() {
   const [sessionTranscript, setSessionTranscript] = useState<any[]>([])
   
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-  // Check if instructor route (hash-based)
-  const [currentHash, setCurrentHash] = useState(window.location.hash)
-  const isInstructorRoute = currentHash === '#/instructor'
   
   useEffect(() => {
     // Load students and assignments on mount
     loadData()
-  }, [])
-
-  useEffect(() => {
-    // Listen for hash changes
-    const handleHashChange = () => {
-      setCurrentHash(window.location.hash)
-    }
-    
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
   const loadData = async () => {
@@ -123,18 +111,13 @@ function App() {
   const student = students.find(s => s.id === parseInt(selectedStudent))
   const assignment = assignments.find(a => a.id === parseInt(selectedAssignment))
 
-  // Show instructor dashboard if on /instructor route
-  if (isInstructorRoute) {
-    return <Instructor />
-  }
-
   return (
     <>
       <h1>Oral Assessment Tool</h1>
       
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <a 
-          href="#/instructor" 
+        <Link 
+          to="/instructor"
           style={{ 
             color: '#666', 
             fontSize: '14px',
@@ -142,7 +125,7 @@ function App() {
           }}
         >
           Instructor Access
-        </a>
+        </Link>
       </div>
       
       {currentView === 'selection' && (
@@ -237,6 +220,15 @@ function App() {
         />
       )}
     </>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<StudentFlow />} />
+      <Route path="/instructor" element={<Instructor />} />
+    </Routes>
   )
 }
 

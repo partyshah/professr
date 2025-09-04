@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 interface Session {
   session_id: number
@@ -134,19 +135,19 @@ function Instructor() {
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h1>Instructor Dashboard</h1>
-        <button
-          onClick={() => window.location.href = '#/'}
+        <Link
+          to="/"
           style={{
             padding: '8px 16px',
             backgroundColor: '#666',
             color: 'white',
-            border: 'none',
+            textDecoration: 'none',
             borderRadius: '4px',
-            cursor: 'pointer'
+            display: 'inline-block'
           }}
         >
           Student View
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
