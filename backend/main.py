@@ -156,6 +156,21 @@ async def submit_session(submission: SessionSubmission, db: DBSession = Depends(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error submitting session: {str(e)}")
 
+@app.delete("/sessions/{session_id}")
+async def delete_session(session_id: int, db: DBSession = Depends(get_db)):
+    """Delete a session by ID"""
+    try:
+        session = db.query(Session).filter(Session.id == session_id).first()
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        
+        db.delete(session)
+        db.commit()
+        
+        return {"message": "Session deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting session: {str(e)}")
+
 @app.get("/test-data")
 async def get_test_data(db: DBSession = Depends(get_db)):
     try:

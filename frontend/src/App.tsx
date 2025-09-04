@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import './App.css'
 import Session from './Session'
 import Results from './Results'
+import Instructor from './Instructor'
 
 interface Student {
   id: number
@@ -27,6 +28,9 @@ function App() {
   const [sessionTranscript, setSessionTranscript] = useState<any[]>([])
   
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+  // Check if instructor route
+  const isInstructorRoute = window.location.pathname === '/instructor'
   
   useEffect(() => {
     // Load students and assignments on mount
@@ -108,9 +112,27 @@ function App() {
   const student = students.find(s => s.id === parseInt(selectedStudent))
   const assignment = assignments.find(a => a.id === parseInt(selectedAssignment))
 
+  // Show instructor dashboard if on /instructor route
+  if (isInstructorRoute) {
+    return <Instructor />
+  }
+
   return (
     <>
       <h1>Oral Assessment Tool</h1>
+      
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <a 
+          href="/instructor" 
+          style={{ 
+            color: '#666', 
+            fontSize: '14px',
+            textDecoration: 'none'
+          }}
+        >
+          Instructor Access
+        </a>
+      </div>
       
       {currentView === 'selection' && (
         <div className="card">
