@@ -1,49 +1,64 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 
+interface Student {
+  id: number
+  name: string
+}
+
+interface Assignment {
+  id: number
+  title: string
+  description: string
+}
+
 function App() {
-  const [backendStatus, setBackendStatus] = useState<string>('Checking...')
-  const [testData, setTestData] = useState<any>(null)
+  const [students, setStudents] = useState<Student[]>([])
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [selectedStudent, setSelectedStudent] = useState<string>('')
+  const [selectedAssignment, setSelectedAssignment] = useState<string>('')
+  const [isReady, setIsReady] = useState(false)
   const [message, setMessage] = useState<string>('')
   
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   
   useEffect(() => {
-    const checkBackend = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/healthz`)
-        const data = await response.json()
-        setBackendStatus(data.status === 'healthy' ? '✅ Backend Connected' : '❌ Backend Issue')
-      } catch (error) {
-        setBackendStatus('❌ Backend Offline')
-      }
-    }
-    checkBackend()
+    // Load students and assignments on mount
+    loadData()
   }, [])
 
-  const createTestData = async () => {
+  const loadData = async () => {
     try {
-      setMessage('Creating test data...')
-      const response = await fetch(`${apiUrl}/test-data`, {
-        method: 'POST',
-      })
-      const data = await response.json()
-      setMessage(`✅ Test data created! Session ID: ${data.session_id}`)
+      // Seed data if needed
+      await fetch(`${apiUrl}/seed-data`, { method: 'POST' })
+      
+      // Fetch students
+      const studentsResponse = await fetch(`${apiUrl}/students`)
+      const studentsData = await studentsResponse.json()
+      setStudents(studentsData.students)
+      
+      // Fetch assignments
+      const assignmentsResponse = await fetch(`${apiUrl}/assignments`)
+      const assignmentsData = await assignmentsResponse.json()
+      setAssignments(assignmentsData.assignments)
     } catch (error) {
-      setMessage('❌ Error creating test data')
+      setMessage('Error loading data')
     }
   }
 
-  const showTestData = async () => {
-    try {
-      setMessage('Fetching test data...')
-      const response = await fetch(`${apiUrl}/test-data`)
-      const data = await response.json()
-      setTestData(data)
-      setMessage(`✅ Found ${data.sessions.length} session(s)`)
-    } catch (error) {
-      setMessage('❌ Error fetching test data')
-    }
+  useEffect(() => {
+    // Check if both selections are made
+    setIsReady(selectedStudent !== '' && selectedAssignment !== '')
+  }, [selectedStudent, selectedAssignment])
+
+  const handleStartSession = () => {
+    if (!isReady) return
+    
+    // For now, just show what was selected
+    const student = students.find(s => s.id === parseInt(selectedStudent))
+    const assignment = assignments.find(a => a.id === parseInt(selectedAssignment))
+    
+    alert(`Starting session:\nStudent: ${student?.name}\nAssignment: ${assignment?.title}`)
   }
 
   return (
@@ -51,42 +66,71 @@ function App() {
       <h1>Oral Assessment Tool</h1>
       
       <div className="card">
-        <p>Frontend: ✅ Running</p>
-        <p>Backend: {backendStatus}</p>
-      </div>
+        <h2>Start Assessment</h2>
+        
+        <div style={{ marginBottom: '20px' }}>
+          <label htmlFor="student-select" style={{ display: 'block', marginBottom: '5px' }}>
+            1. Select your name:
+          </label>
+          <select 
+            id="student-select"
+            value={selectedStudent} 
+            onChange={(e) => setSelectedStudent(e.target.value)}
+            style={{ width: '100%', padding: '8px', fontSize: '16px' }}
+          >
+            <option value="">-- Choose Student --</option>
+            {students.map(student => (
+              <option key={student.id} value={student.id}>
+                {student.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div className="card">
-        <h2>Database Test</h2>
-        <button onClick={createTestData} style={{ marginRight: '10px' }}>
-          Create Test Data
+        <div style={{ marginBottom: '20px' }}>
+          <label htmlFor="assignment-select" style={{ display: 'block', marginBottom: '5px' }}>
+            2. Select assignment:
+          </label>
+          <select 
+            id="assignment-select"
+            value={selectedAssignment} 
+            onChange={(e) => setSelectedAssignment(e.target.value)}
+            style={{ width: '100%', padding: '8px', fontSize: '16px' }}
+            disabled={!selectedStudent}
+          >
+            <option value="">-- Choose Assignment --</option>
+            {assignments.map(assignment => (
+              <option key={assignment.id} value={assignment.id}>
+                {assignment.title}
+              </option>
+            ))}
+          </select>
+          {selectedAssignment && (
+            <p style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+              {assignments.find(a => a.id === parseInt(selectedAssignment))?.description}
+            </p>
+          )}
+        </div>
+
+        <button 
+          onClick={handleStartSession}
+          disabled={!isReady}
+          style={{
+            width: '100%',
+            padding: '12px',
+            fontSize: '18px',
+            backgroundColor: isReady ? '#4CAF50' : '#ccc',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isReady ? 'pointer' : 'not-allowed'
+          }}
+        >
+          Start Assessment
         </button>
-        <button onClick={showTestData}>
-          Show Data
-        </button>
+        
         {message && <p>{message}</p>}
       </div>
-
-      {testData && (
-        <div className="card">
-          <h2>Test Results</h2>
-          {testData.sessions.map((session: any) => (
-            <div key={session.session_id} style={{ border: '1px solid #ccc', padding: '10px', margin: '10px 0' }}>
-              <h3>{session.student_name} - {session.assignment_title}</h3>
-              <p><strong>Score:</strong> {session.final_score} ({session.score_category})</p>
-              <p><strong>Status:</strong> {session.status}</p>
-              <div>
-                <h4>Transcript:</h4>
-                {session.transcript.map((turn: any, index: number) => (
-                  <p key={index} style={{ marginLeft: '20px' }}>
-                    <strong>{turn.speaker === 'student' ? 'Student' : 'AI'}:</strong> {turn.text}
-                  </p>
-                ))}
-              </div>
-              <p><strong>AI Feedback:</strong> {session.ai_feedback}</p>
-            </div>
-          ))}
-        </div>
-      )}
     </>
   )
 }
