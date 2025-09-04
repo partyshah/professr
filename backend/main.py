@@ -2,11 +2,11 @@ import os
 from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as DBSession
 from dotenv import load_dotenv
 
 from database import get_db
-from models import Ping
+from models import Student, Assignment, Session
 
 load_dotenv()
 
@@ -34,23 +34,79 @@ app.add_middleware(
 async def health_check():
     return {"status": "healthy"}
 
-@app.get("/db-ping")
-async def db_ping(db: Session = Depends(get_db)):
+@app.post("/test-data")
+async def create_test_data(db: DBSession = Depends(get_db)):
     try:
-        # Create a new ping record
-        new_ping = Ping(message=f"Database ping at {datetime.now()}")
-        db.add(new_ping)
+        # Create test student
+        student = Student(name="John Doe")
+        db.add(student)
         db.commit()
-        db.refresh(new_ping)
+        db.refresh(student)
         
-        # Read back the latest ping
-        latest_ping = db.query(Ping).order_by(Ping.id.desc()).first()
+        # Create test assignment  
+        assignment = Assignment(
+            title="Poetry Analysis", 
+            description="Analyze a poem and discuss its themes"
+        )
+        db.add(assignment)
+        db.commit()
+        db.refresh(assignment)
+        
+        # Create test session
+        test_transcript = [
+            {"speaker": "student", "text": "I think this poem is about love and loss"},
+            {"speaker": "ai", "text": "That's an interesting interpretation. Can you elaborate on the specific imagery that suggests loss?"},
+            {"speaker": "student", "text": "The author mentions wilted flowers and empty rooms"},
+            {"speaker": "ai", "text": "Excellent observation. How does that imagery connect to the overall theme?"}
+        ]
+        
+        session = Session(
+            student_id=student.id,
+            assignment_id=assignment.id,
+            status="completed",
+            started_at=datetime.now(),
+            completed_at=datetime.now(),
+            full_transcript=test_transcript,
+            final_score=85,
+            score_category="green",
+            ai_feedback="Strong analysis with good textual evidence. Consider exploring more complex themes."
+        )
+        db.add(session)
+        db.commit()
+        db.refresh(session)
         
         return {
-            "status": "database_healthy",
-            "ping_id": latest_ping.id,
-            "message": latest_ping.message,
-            "created_at": latest_ping.created_at
+            "status": "success",
+            "student_id": student.id,
+            "assignment_id": assignment.id,
+            "session_id": session.id
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating test data: {str(e)}")
+
+@app.get("/test-data")
+async def get_test_data(db: DBSession = Depends(get_db)):
+    try:
+        # Get all sessions with student and assignment names
+        sessions = db.query(Session).all()
+        
+        result = []
+        for session in sessions:
+            student = db.query(Student).filter(Student.id == session.student_id).first()
+            assignment = db.query(Assignment).filter(Assignment.id == session.assignment_id).first()
+            
+            result.append({
+                "session_id": session.id,
+                "student_name": student.name if student else "Unknown",
+                "assignment_title": assignment.title if assignment else "Unknown",
+                "status": session.status,
+                "final_score": session.final_score,
+                "score_category": session.score_category,
+                "transcript": session.full_transcript,
+                "ai_feedback": session.ai_feedback,
+                "completed_at": session.completed_at
+            })
+        
+        return {"sessions": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching test data: {str(e)}")
