@@ -21,7 +21,7 @@ function Session({ studentName, assignmentTitle, onComplete, onCancel }: Session
   const [status, setStatus] = useState<ConversationStatus>('idle')
   const [transcript, setTranscript] = useState<Turn[]>([])
   const [isStarted, setIsStarted] = useState(false)
-  const intervalRef = useRef<number>()
+  const intervalRef = useRef<number | undefined>(undefined)
   const turnCountRef = useRef(0)
 
   // Mock conversation data
@@ -43,6 +43,12 @@ function Session({ studentName, assignmentTitle, onComplete, onCancel }: Session
       student: "Yes, some might argue that the circumstances are too different to draw direct parallels."
     }
   ]
+
+  const handleSubmit = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current)
+    setIsStarted(false)
+    onComplete(transcript)
+  }, [transcript, onComplete])
 
   useEffect(() => {
     if (isStarted && timeLeft > 0) {
@@ -99,12 +105,6 @@ function Session({ studentName, assignmentTitle, onComplete, onCancel }: Session
     }
     setStatus('idle')
   }
-
-  const handleSubmit = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    setIsStarted(false)
-    onComplete(transcript)
-  }, [transcript, onComplete])
 
   const handleQuickSubmit = () => {
     // For testing - submit early with current transcript
