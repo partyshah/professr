@@ -29,12 +29,23 @@ function App() {
   
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-  // Check if instructor route
-  const isInstructorRoute = window.location.pathname === '/instructor'
+  // Check if instructor route (hash-based)
+  const [currentHash, setCurrentHash] = useState(window.location.hash)
+  const isInstructorRoute = currentHash === '#/instructor'
   
   useEffect(() => {
     // Load students and assignments on mount
     loadData()
+  }, [])
+
+  useEffect(() => {
+    // Listen for hash changes
+    const handleHashChange = () => {
+      setCurrentHash(window.location.hash)
+    }
+    
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
   const loadData = async () => {
@@ -123,7 +134,7 @@ function App() {
       
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <a 
-          href="/instructor" 
+          href="#/instructor" 
           style={{ 
             color: '#666', 
             fontSize: '14px',

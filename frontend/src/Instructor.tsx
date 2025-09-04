@@ -135,7 +135,7 @@ function Instructor() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h1>Instructor Dashboard</h1>
         <button
-          onClick={() => window.location.href = '/'}
+          onClick={() => window.location.href = '#/'}
           style={{
             padding: '8px 16px',
             backgroundColor: '#666',
