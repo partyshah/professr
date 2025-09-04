@@ -34,55 +34,82 @@ app.add_middleware(
 async def health_check():
     return {"status": "healthy"}
 
-@app.post("/test-data")
-async def create_test_data(db: DBSession = Depends(get_db)):
+@app.post("/seed-data")
+async def seed_data(db: DBSession = Depends(get_db)):
+    """Create sample students and assignments for testing"""
     try:
-        # Create test student
-        student = Student(name="John Doe")
-        db.add(student)
-        db.commit()
-        db.refresh(student)
+        # Check if data already exists
+        existing_students = db.query(Student).first()
+        if existing_students:
+            return {"status": "Data already seeded"}
         
-        # Create test assignment  
-        assignment = Assignment(
-            title="Poetry Analysis", 
-            description="Analyze a poem and discuss its themes"
-        )
-        db.add(assignment)
-        db.commit()
-        db.refresh(assignment)
-        
-        # Create test session
-        test_transcript = [
-            {"speaker": "student", "text": "I think this poem is about love and loss"},
-            {"speaker": "ai", "text": "That's an interesting interpretation. Can you elaborate on the specific imagery that suggests loss?"},
-            {"speaker": "student", "text": "The author mentions wilted flowers and empty rooms"},
-            {"speaker": "ai", "text": "Excellent observation. How does that imagery connect to the overall theme?"}
+        # Create students
+        students = [
+            Student(name="Alice Johnson"),
+            Student(name="Bob Smith"),
+            Student(name="Carol Davis"),
+            Student(name="David Wilson"),
+            Student(name="Emma Brown"),
         ]
-        
-        session = Session(
-            student_id=student.id,
-            assignment_id=assignment.id,
-            status="completed",
-            started_at=datetime.now(),
-            completed_at=datetime.now(),
-            full_transcript=test_transcript,
-            final_score=85,
-            score_category="green",
-            ai_feedback="Strong analysis with good textual evidence. Consider exploring more complex themes."
-        )
-        db.add(session)
+        for student in students:
+            db.add(student)
         db.commit()
-        db.refresh(session)
+        
+        # Create assignments
+        assignments = [
+            Assignment(
+                title="Poetry Analysis",
+                description="Analyze the themes and literary devices in the provided poem"
+            ),
+            Assignment(
+                title="Historical Event Discussion",
+                description="Discuss the causes and effects of the American Revolution"
+            ),
+            Assignment(
+                title="Scientific Method",
+                description="Explain how you would design an experiment to test plant growth"
+            ),
+            Assignment(
+                title="Character Analysis",
+                description="Analyze the main character's development in To Kill a Mockingbird"
+            ),
+            Assignment(
+                title="Current Events",
+                description="Discuss a recent news story and its broader implications"
+            ),
+        ]
+        for assignment in assignments:
+            db.add(assignment)
+        db.commit()
         
         return {
             "status": "success",
-            "student_id": student.id,
-            "assignment_id": assignment.id,
-            "session_id": session.id
+            "students_created": len(students),
+            "assignments_created": len(assignments)
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating test data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error seeding data: {str(e)}")
+
+@app.get("/students")
+async def get_students(db: DBSession = Depends(get_db)):
+    """Get all students for dropdown selection"""
+    try:
+        students = db.query(Student).all()
+        return {"students": [{"id": s.id, "name": s.name} for s in students]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching students: {str(e)}")
+
+@app.get("/assignments")
+async def get_assignments(db: DBSession = Depends(get_db)):
+    """Get all assignments for dropdown selection"""
+    try:
+        assignments = db.query(Assignment).all()
+        return {"assignments": [
+            {"id": a.id, "title": a.title, "description": a.description} 
+            for a in assignments
+        ]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching assignments: {str(e)}")
 
 @app.get("/test-data")
 async def get_test_data(db: DBSession = Depends(get_db)):
