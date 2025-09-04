@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: backend-api
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn -k uvicorn.workers.UvicornWorker backend.main:app -w 2 -b 0.0.0.0:10000 --timeout 60"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
