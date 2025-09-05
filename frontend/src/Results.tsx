@@ -85,7 +85,7 @@ function Results({
     addText('Conversation Transcript', 14, true)
     yPosition += 5
     
-    transcript.forEach((turn, index) => {
+    transcript.forEach((turn) => {
       // Check for page break before each turn
       if (yPosition > pageHeight - 40) {
         pdf.addPage()
