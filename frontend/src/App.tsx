@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Routes, Route, Link } from 'react-router-dom'
 import './App.css'
 import Session from './Session'
+import SpeechSession from './SpeechSession'
 import Results from './Results'
 import Instructor from './Instructor'
 
@@ -285,7 +286,7 @@ function StudentFlow() {
       )}
 
       {currentView === 'session' && student && assignment && (
-        <Session
+        <SpeechSession
           studentId={student.id}
           studentName={student.name}
           assignmentId={assignment.id}

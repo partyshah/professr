@@ -1,16 +1,25 @@
 import os
 from datetime import datetime
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
 from pydantic import BaseModel
 from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as DBSession
 from dotenv import load_dotenv
+import openai
+from elevenlabs import ElevenLabs
 
 from database import get_db
 from models import Student, Assignment, Session
 
 load_dotenv()
+
+# Initialize OpenAI client
+openai.api_key = os.getenv("OPENAI_API_KEY")
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# Initialize ElevenLabs client
+elevenlabs_client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
 
 app = FastAPI(title="Backend API")
 
@@ -192,6 +201,139 @@ async def delete_session(session_id: int, db: DBSession = Depends(get_db)):
         return {"message": "Session deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting session: {str(e)}")
+
+@app.post("/speech-to-text")
+async def speech_to_text(audio_file: UploadFile = File(...)):
+    """Convert audio to text using OpenAI Whisper"""
+    try:
+        # Read the audio file
+        audio_content = await audio_file.read()
+        
+        # Create a temporary file-like object for OpenAI
+        from io import BytesIO
+        audio_buffer = BytesIO(audio_content)
+        audio_buffer.name = audio_file.filename
+        
+        # Send to Whisper
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_buffer
+        )
+        
+        return {"transcript": transcript.text}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Speech-to-text error: {str(e)}")
+
+@app.post("/ai-response")
+async def get_ai_response(request: dict):
+    """Get AI professor response using GPT-5"""
+    try:
+        assignment_title = request.get("assignment_title", "")
+        transcript = request.get("transcript", [])
+        current_student_input = request.get("current_input", "")
+        
+        # Build conversation context
+        conversation_context = ""
+        for turn in transcript:
+            speaker = "Student" if turn["speaker"] == "student" else "AI Professor"
+            conversation_context += f"{speaker}: {turn['text']}\n"
+        
+        # Add current student input
+        conversation_context += f"Student: {current_student_input}\n"
+        
+        # System prompt
+        system_prompt = f"""You are an AI professor conducting an oral assessment with a student on the topic: "{assignment_title}". 
+
+Your role is to:
+- Ask thoughtful follow-up questions about their responses
+- Encourage deeper analysis and critical thinking  
+- Provide gentle guidance without giving away answers
+- Keep the conversation focused on the assignment topic
+- Maintain an encouraging, academic tone
+- Keep responses concise (1-2 sentences) to maintain conversation flow
+- Build upon what the student has already said in this conversation
+
+This is a {assignment_title} discussion. Guide the student to demonstrate their understanding through dialogue."""
+
+        # Make GPT call
+        response = client.chat.completions.create(
+            model="gpt-4",  # Will update to gpt-5 when available
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": conversation_context}
+            ],
+            max_tokens=150,
+            temperature=0.7
+        )
+        
+        ai_response = response.choices[0].message.content
+        
+        return {"response": ai_response}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI response error: {str(e)}")
+
+@app.post("/text-to-speech")
+async def text_to_speech(request: dict):
+    """Convert text to speech using ElevenLabs"""
+    try:
+        text = request.get("text", "")
+        voice_id = os.getenv("ELEVENLABS_VOICE_ID")
+        
+        if not voice_id:
+            raise HTTPException(status_code=500, detail="ElevenLabs voice ID not configured")
+        
+        # Generate speech - try different ElevenLabs API approach
+        try:
+            print(f"Text to convert: '{text}'")
+            print(f"Using voice ID: {voice_id}")
+            
+            # Try the direct API approach instead of the client
+            import requests
+            
+            url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+            headers = {
+                "Accept": "audio/mpeg",
+                "Content-Type": "application/json",
+                "xi-api-key": os.getenv("ELEVENLABS_API_KEY")
+            }
+            data = {
+                "text": text,
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.5
+                }
+            }
+            
+            print("Making ElevenLabs API request...")
+            response = requests.post(url, json=data, headers=headers)
+            print(f"ElevenLabs response status: {response.status_code}")
+            
+            if response.status_code != 200:
+                print(f"ElevenLabs error response: {response.text}")
+                raise Exception(f"ElevenLabs API error: {response.status_code} - {response.text}")
+            
+            audio_bytes = response.content
+            print(f"Generated audio bytes length: {len(audio_bytes)}")
+            
+            if len(audio_bytes) < 1000:  # Suspiciously small
+                raise Exception(f"Audio too small: {len(audio_bytes)} bytes")
+                
+        except Exception as e:
+            print(f"ElevenLabs error: {str(e)}")
+            raise Exception(f"ElevenLabs generation failed: {str(e)}")
+        
+        from fastapi.responses import Response
+        return Response(
+            content=audio_bytes,
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "attachment; filename=speech.mp3"}
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Text-to-speech error: {str(e)}")
 
 @app.get("/test-data")
 async def get_test_data(db: DBSession = Depends(get_db)):
