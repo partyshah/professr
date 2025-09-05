@@ -65,7 +65,7 @@ function StudentFlow() {
       setAssignments(assignmentsData.assignments)
     } catch (error) {
       console.error('Load data error:', error)
-      setMessage(`Error loading data: ${error.message || 'Connection failed'}`)
+      setMessage(`Error loading data: ${error instanceof Error ? error.message : 'Connection failed'}`)
     }
   }
 
