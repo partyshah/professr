@@ -112,6 +112,28 @@ async def get_students(db: DBSession = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching students: {str(e)}")
 
+@app.get("/check-session")
+async def check_session(student_id: int, assignment_id: int, db: DBSession = Depends(get_db)):
+    """Check if a student has already completed an assignment"""
+    try:
+        existing_session = db.query(Session).filter(
+            Session.student_id == student_id,
+            Session.assignment_id == assignment_id,
+            Session.status == "completed"  # Only count completed sessions
+        ).first()
+        
+        if existing_session:
+            return {
+                "exists": True,
+                "session_id": existing_session.id,
+                "completed_at": existing_session.completed_at,
+                "score": existing_session.final_score
+            }
+        else:
+            return {"exists": False}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking session: {str(e)}")
+
 @app.get("/assignments")
 async def get_assignments(db: DBSession = Depends(get_db)):
     """Get all assignments for dropdown selection"""
