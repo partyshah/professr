@@ -7,8 +7,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as DBSession
 from dotenv import load_dotenv
 import openai
-from elevenlabs import ElevenLabs
-
 from database import get_db
 from models import Student, Assignment, Session
 
@@ -17,9 +15,6 @@ load_dotenv()
 # Initialize OpenAI client
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# Initialize ElevenLabs client
-elevenlabs_client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
 
 app = FastAPI(title="Backend API")
 
