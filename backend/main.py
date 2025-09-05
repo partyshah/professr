@@ -33,6 +33,7 @@ class SessionSubmission(BaseModel):
 origins = [
     "http://localhost:5173",
     "http://localhost:3000",
+    "https://prod-heather-frontend.onrender.com",  # Production frontend
 ]
 
 # Add production frontend URL if set
