@@ -17,9 +17,9 @@ interface Turn {
 }
 
 function SpeechSession({ 
-  studentId, 
+  studentId: _studentId, 
   studentName, 
-  assignmentId, 
+  assignmentId: _assignmentId, 
   assignmentTitle, 
   onComplete, 
   onCancel 
@@ -28,13 +28,13 @@ function SpeechSession({
   const [sessionState, setSessionState] = useState<SessionState>('ai_speaking')
   const [transcript, setTranscript] = useState<Turn[]>([])
   const [isRecording, setIsRecording] = useState(false)
-  const [currentAiResponse, setCurrentAiResponse] = useState('')
+  const [, setCurrentAiResponse] = useState('')
   const [audioUrl, setAudioUrl] = useState<string>('')
-  const [waitingForPlay, setWaitingForPlay] = useState(false)
+  const [, setWaitingForPlay] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
-  const intervalRef = useRef<number>()
+  const intervalRef = useRef<number | undefined>(undefined)
   
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -208,7 +208,7 @@ function SpeechSession({
       console.log('Audio is now playing')
     } catch (error) {
       console.error('Error playing audio:', error)
-      alert(`Error playing audio response: ${error.message}`)
+      alert(`Error playing audio response: ${error}`)
     }
   }
 
@@ -280,7 +280,7 @@ function SpeechSession({
       setTranscript([{ speaker: 'ai', text: aiText }])
       
       // Start timer
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = window.setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
             handleComplete()
