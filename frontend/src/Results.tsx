@@ -114,20 +114,15 @@ function Results({
     pdf.save(filename)
   }
   
-  useEffect(() => {
-    // Small delay to ensure component renders first
-    const timer = setTimeout(() => {
-      generatePDF()
-      setShowNotification(true)
-      
-      // Hide notification after 3 seconds
-      setTimeout(() => {
-        setShowNotification(false)
-      }, 3000)
-    }, 100)
+  const handleDownloadPDF = () => {
+    generatePDF()
+    setShowNotification(true)
     
-    return () => clearTimeout(timer)
-  }, [])
+    // Hide notification after 3 seconds
+    setTimeout(() => {
+      setShowNotification(false)
+    }, 3000)
+  }
 
   return (
     <div className="card" style={{ maxWidth: '800px', margin: '0 auto', padding: '30px', position: 'relative' }}>
@@ -204,21 +199,38 @@ function Results({
         </div>
       </div>
 
-      <button
-        onClick={onBack}
-        style={{
-          width: '100%',
-          padding: '12px',
-          fontSize: '16px',
-          backgroundColor: '#2196F3',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer'
-        }}
-      >
-        Back to Home
-      </button>
+      <div style={{ display: 'flex', gap: '10px' }}>
+        <button
+          onClick={handleDownloadPDF}
+          style={{
+            flex: 1,
+            padding: '12px',
+            fontSize: '16px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          📄 Download PDF
+        </button>
+        <button
+          onClick={onBack}
+          style={{
+            flex: 1,
+            padding: '12px',
+            fontSize: '16px',
+            backgroundColor: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Back to Home
+        </button>
+      </div>
     </div>
   )
 }
