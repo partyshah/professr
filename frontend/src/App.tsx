@@ -40,20 +40,32 @@ function StudentFlow() {
 
   const loadData = async () => {
     try {
+      console.log('API URL:', apiUrl)
+      
       // Seed data if needed
-      await fetch(`${apiUrl}/seed-data`, { method: 'POST' })
+      const seedResponse = await fetch(`${apiUrl}/seed-data`, { method: 'POST' })
+      console.log('Seed response:', seedResponse.status)
       
       // Fetch students
       const studentsResponse = await fetch(`${apiUrl}/students`)
+      console.log('Students response:', studentsResponse.status)
+      if (!studentsResponse.ok) {
+        throw new Error(`Students API failed: ${studentsResponse.status}`)
+      }
       const studentsData = await studentsResponse.json()
       setStudents(studentsData.students)
       
       // Fetch assignments
       const assignmentsResponse = await fetch(`${apiUrl}/assignments`)
+      console.log('Assignments response:', assignmentsResponse.status)
+      if (!assignmentsResponse.ok) {
+        throw new Error(`Assignments API failed: ${assignmentsResponse.status}`)
+      }
       const assignmentsData = await assignmentsResponse.json()
       setAssignments(assignmentsData.assignments)
     } catch (error) {
-      setMessage('Error loading data')
+      console.error('Load data error:', error)
+      setMessage(`Error loading data: ${error.message || 'Connection failed'}`)
     }
   }
 
