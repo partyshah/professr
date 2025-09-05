@@ -45,11 +45,21 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 @app.get("/healthz")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/debug-cors")
+async def debug_cors():
+    return {
+        "allowed_origins": origins,
+        "frontend_url_env": os.getenv("FRONTEND_URL"),
+        "openai_key_set": bool(os.getenv("OPENAI_API_KEY")),
+        "elevenlabs_key_set": bool(os.getenv("ELEVENLABS_API_KEY"))
+    }
 
 @app.post("/seed-data")
 async def seed_data(db: DBSession = Depends(get_db)):
