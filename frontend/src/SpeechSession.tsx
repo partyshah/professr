@@ -17,9 +17,9 @@ interface Turn {
 }
 
 function SpeechSession({ 
-  studentId: _studentId, 
+  studentId, 
   studentName, 
-  assignmentId: _assignmentId, 
+  assignmentId, 
   assignmentTitle, 
   onComplete, 
   onCancel 
@@ -31,6 +31,7 @@ function SpeechSession({
   const [, setCurrentAiResponse] = useState('')
   const [audioUrl, setAudioUrl] = useState<string>('')
   const [, setWaitingForPlay] = useState(false)
+  const [aiSessionId, setAiSessionId] = useState<string | null>(null)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -102,18 +103,21 @@ function SpeechSession({
         const newTranscript = [...transcript, { speaker: 'student' as const, text: studentText }]
         setTranscript(newTranscript)
         
-        // Get AI response
+        // Get AI response using new system
         setSessionState('loading_response')
         
-        const aiResponse = await fetch(`${apiUrl}/ai-response`, {
+        if (!aiSessionId) {
+          throw new Error('AI session not initialized')
+        }
+        
+        const aiResponse = await fetch(`${apiUrl}/ai-chat`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            assignment_title: assignmentTitle,
-            transcript: transcript,
-            current_input: studentText
+            session_id: aiSessionId,
+            message: studentText
           })
         })
         
@@ -222,21 +226,44 @@ function SpeechSession({
       return
     }
     
-    // Start with AI greeting
+    // Initialize AI session with PDF context
     setSessionState('loading_response')
     
     try {
-      const aiResponse = await fetch(`${apiUrl}/ai-response`, {
+      // Step 1: Start AI session
+      const sessionResponse = await fetch(`${apiUrl}/start-ai-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          assignment_title: assignmentTitle,
-          transcript: [],
-          current_input: 'Hello, I\'m ready to begin the assessment.'
+          student_id: studentId,
+          assignment_id: assignmentId
         })
       })
+      
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to start AI session')
+      }
+      
+      const sessionData = await sessionResponse.json()
+      setAiSessionId(sessionData.session_id)
+      
+      // Step 2: Get initial AI greeting
+      const aiResponse = await fetch(`${apiUrl}/ai-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          session_id: sessionData.session_id,
+          message: 'Hello, I\'m ready to begin discussing today\'s readings.'
+        })
+      })
+      
+      if (!aiResponse.ok) {
+        throw new Error('Failed to get AI response')
+      }
       
       const aiData = await aiResponse.json()
       const aiText = aiData.response
@@ -296,7 +323,7 @@ function SpeechSession({
     }
   }
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
     }
@@ -304,6 +331,25 @@ function SpeechSession({
     // Stop any ongoing recording
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
+    }
+    
+    // Evaluate AI session if we have a session ID
+    if (aiSessionId) {
+      try {
+        const evaluationResponse = await fetch(`${apiUrl}/evaluate-ai-session?session_id=${aiSessionId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        if (evaluationResponse.ok) {
+          const evaluation = await evaluationResponse.json()
+          console.log('Session evaluated:', evaluation)
+        }
+      } catch (error) {
+        console.error('Error evaluating session:', error)
+      }
     }
     
     onComplete(transcript)
