@@ -51,9 +51,22 @@ class AITutorService:
     def get_ai_response(self, session_id: str, user_message: str) -> Tuple[str, Dict]:
         """Get AI response for a user message in a session"""
         
-        # Get or create session
+        # Get or create session - try to auto-initialize if missing
         if session_id not in self.sessions:
-            return "Session not found. Please start a new assessment.", {'error': 'Session not found'}
+            # Try to extract assignment_id from session_id format: session_{student_id}_{assignment_id}_{timestamp}
+            try:
+                parts = session_id.split('_')
+                if len(parts) >= 3:
+                    assignment_id = int(parts[2])
+                    # Auto-initialize session with default PDFs
+                    default_pdfs = ["week1/reading1.pdf", "week1/reading2.pdf"]
+                    init_result = self.initialize_session(session_id, default_pdfs)
+                    if not init_result['success']:
+                        return "Could not initialize session. Please start a new assessment.", {'error': 'Auto-init failed'}
+                else:
+                    return "Session not found. Please start a new assessment.", {'error': 'Session not found'}
+            except:
+                return "Session not found. Please start a new assessment.", {'error': 'Session not found'}
         
         session_data = self.sessions[session_id]
         conv_manager = session_data['manager']
