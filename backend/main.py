@@ -1,21 +1,29 @@
 import os
 from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Optional
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as DBSession
 from dotenv import load_dotenv
 import openai
 from database import get_db
 from models import Student, Assignment, Session
+from ai_service import AITutorService
 
 load_dotenv()
 
 # Initialize OpenAI client
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Initialize AI Tutor Service
+ai_service = AITutorService()
+
 app = FastAPI(title="Backend API")
+
+# Mount static files for serving PDFs
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Request models
 class Turn(BaseModel):
@@ -27,6 +35,15 @@ class SessionSubmission(BaseModel):
     assignment_id: int
     transcript: List[Turn]
     duration_seconds: int
+
+# New AI conversation models
+class StartSessionRequest(BaseModel):
+    student_id: int
+    assignment_id: int
+
+class ChatMessageRequest(BaseModel):
+    session_id: str
+    message: str
 
 # CORS configuration
 origins = [
@@ -154,7 +171,14 @@ async def get_assignments(db: DBSession = Depends(get_db)):
     try:
         assignments = db.query(Assignment).all()
         return {"assignments": [
-            {"id": a.id, "title": a.title, "description": a.description} 
+            {
+                "id": a.id, 
+                "title": a.title, 
+                "description": a.description,
+                "week_number": a.week_number,
+                "pdf_urls": [f"/static/assignments/{path}" for path in a.pdf_paths] if a.pdf_paths else [],
+                "solution_pdf_urls": [f"/static/assignments/{path}" for path in a.solution_pdf_paths] if a.solution_pdf_paths else []
+            } 
             for a in assignments
         ]}
     except Exception as e:
@@ -229,6 +253,113 @@ async def speech_to_text(audio_file: UploadFile = File(...)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Speech-to-text error: {str(e)}")
+
+# New AI Tutoring Endpoints
+@app.post("/start-ai-session")
+async def start_ai_session(request: StartSessionRequest, db: DBSession = Depends(get_db)):
+    """Start a new AI tutoring session with PDF context"""
+    try:
+        # Get assignment and its PDFs
+        assignment = db.query(Assignment).filter(Assignment.id == request.assignment_id).first()
+        if not assignment:
+            raise HTTPException(status_code=404, detail="Assignment not found")
+        
+        if not assignment.pdf_paths:
+            raise HTTPException(status_code=400, detail="Assignment has no PDFs")
+        
+        # Create session ID
+        session_id = f"session_{request.student_id}_{request.assignment_id}_{int(datetime.now().timestamp())}"
+        
+        # Initialize AI service with PDFs
+        result = ai_service.initialize_session(session_id, assignment.pdf_paths)
+        
+        if not result['success']:
+            raise HTTPException(status_code=500, detail=result['error'])
+        
+        return {
+            "session_id": session_id,
+            "assignment_title": assignment.title,
+            "pdf_count": result['pdf_count'],
+            "message": "Session started. How would you like to begin discussing today's readings?"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error starting AI session: {str(e)}")
+
+@app.post("/ai-chat")
+async def ai_chat(request: ChatMessageRequest):
+    """Send a message to the AI tutor and get a response"""
+    try:
+        ai_response, metadata = ai_service.get_ai_response(request.session_id, request.message)
+        
+        return {
+            "response": ai_response,
+            "question_count": metadata.get('question_count', 0),
+            "phase": metadata.get('phase', 'unknown'),
+            "should_wrap_up": metadata.get('should_wrap_up', False),
+            "token_usage": metadata.get('token_usage', {}),
+            "session_id": request.session_id
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI chat error: {str(e)}")
+
+@app.post("/evaluate-ai-session")
+async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
+    """Evaluate a completed AI session and save to database"""
+    try:
+        # Get evaluation from AI service
+        evaluation = ai_service.evaluate_session(session_id)
+        
+        if 'error' in evaluation:
+            raise HTTPException(status_code=400, detail=evaluation['error'])
+        
+        # Extract session info from session_id
+        try:
+            parts = session_id.split('_')
+            student_id = int(parts[1])
+            assignment_id = int(parts[2])
+        except:
+            raise HTTPException(status_code=400, detail="Invalid session ID format")
+        
+        # Get session stats
+        stats = ai_service.get_session_stats(session_id)
+        
+        # Create session record in database
+        new_session = Session(
+            student_id=student_id,
+            assignment_id=assignment_id,
+            status="completed",
+            started_at=datetime.now(),
+            completed_at=datetime.now(),
+            full_transcript={
+                "type": "ai_conversation",
+                "question_count": evaluation.get('question_count', 6),
+                "evaluation": evaluation
+            },
+            final_score=evaluation.get('score', 75),
+            score_category="green" if evaluation.get('score', 75) >= 85 else 
+                          "yellow" if evaluation.get('score', 75) >= 70 else "red",
+            ai_feedback=evaluation.get('feedback', 'No feedback available')
+        )
+        
+        db.add(new_session)
+        db.commit()
+        db.refresh(new_session)
+        
+        # Clean up AI session
+        ai_service.cleanup_session(session_id)
+        
+        return {
+            "session_id": new_session.id,
+            "score": evaluation.get('score'),
+            "category": evaluation.get('category'),
+            "feedback": evaluation.get('feedback'),
+            "question_count": evaluation.get('question_count')
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error evaluating session: {str(e)}")
 
 @app.post("/ai-response")
 async def get_ai_response(request: dict):
