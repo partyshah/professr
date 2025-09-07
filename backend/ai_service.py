@@ -19,6 +19,8 @@ class AITutorService:
     def initialize_session(self, session_id: str, pdf_paths: List[str]) -> Dict:
         """Initialize a new tutoring session with PDF context"""
         try:
+            from datetime import datetime
+            
             # Extract text from PDFs
             pdf_texts = extract_texts_from_pdfs(pdf_paths)
             pdf_context = format_pdf_context(pdf_texts)
@@ -26,12 +28,13 @@ class AITutorService:
             # Create conversation manager for this session
             conv_manager = ConversationManager()
             
-            # Store session data
+            # Store session data with start time
             self.sessions[session_id] = {
                 'manager': conv_manager,
                 'pdf_context': pdf_context,
                 'conversation_history': [],
-                'pdf_paths': pdf_paths
+                'pdf_paths': pdf_paths,
+                'start_time': datetime.now()
             }
             
             logger.info(f"Initialized session {session_id} with {len(pdf_paths)} PDFs")
@@ -50,6 +53,7 @@ class AITutorService:
     
     def get_ai_response(self, session_id: str, user_message: str) -> Tuple[str, Dict]:
         """Get AI response for a user message in a session"""
+        from datetime import datetime
         
         # Get or create session - try to auto-initialize if missing
         if session_id not in self.sessions:
@@ -73,13 +77,18 @@ class AITutorService:
         pdf_context = session_data['pdf_context']
         conversation_history = session_data['conversation_history']
         
+        # Calculate elapsed time
+        start_time = session_data.get('start_time', datetime.now())
+        elapsed_seconds = int((datetime.now() - start_time).total_seconds())
+        
         try:
-            # Format messages for API
+            # Format messages for API with time context
             messages = conv_manager.format_for_api(
                 system_prompt=TUTOR_SYSTEM_PROMPT,
                 pdf_context=pdf_context,
                 conversation_history=conversation_history,
-                new_message=user_message
+                new_message=user_message,
+                elapsed_seconds=elapsed_seconds
             )
             
             # Call OpenAI API with GPT-4o-mini for cost efficiency
@@ -96,8 +105,8 @@ class AITutorService:
             conversation_history.append({"role": "user", "content": user_message})
             conversation_history.append({"role": "assistant", "content": ai_response})
             
-            # Update phase and question count
-            conv_manager.update_phase()
+            # Update phase and question count based on elapsed time
+            conv_manager.update_phase(elapsed_seconds)
             
             # Calculate token usage for monitoring
             token_usage = {
@@ -108,11 +117,16 @@ class AITutorService:
                                  response.usage.completion_tokens * 0.0006) / 1000
             }
             
-            # Check if conversation should wrap up
+            # Check if conversation should wrap up based on time
+            minutes_elapsed = elapsed_seconds / 60.0
+            should_wrap_up = minutes_elapsed >= 9.5  # Wrap up in final 30 seconds
+            
             metadata = {
                 'question_count': conv_manager.question_count,
                 'phase': conv_manager.phase,
-                'should_wrap_up': conv_manager.should_wrap_up(),
+                'should_wrap_up': should_wrap_up,
+                'elapsed_seconds': elapsed_seconds,
+                'minutes_elapsed': round(minutes_elapsed, 1),
                 'token_usage': token_usage
             }
             

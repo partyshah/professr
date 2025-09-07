@@ -7,22 +7,29 @@ logger = logging.getLogger(__name__)
 class ConversationManager:
     """Manages conversation history with smart truncation to optimize token usage"""
     
-    def __init__(self, max_recent_messages: int = 8):
+    def __init__(self, max_recent_messages: int = 8, total_session_minutes: int = 10):
         self.max_recent_messages = max_recent_messages
         self.question_count = 0
-        self.phase = "opening"  # opening, follow_up, final, wrap_up
+        self.total_session_minutes = total_session_minutes
+        self.phase = "opening"  # opening, exploration, synthesis, wrap_up
         
-    def update_phase(self):
-        """Update conversation phase based on question count"""
+    def update_phase(self, elapsed_seconds: int):
+        """Update conversation phase based on elapsed time"""
         self.question_count += 1
         
-        if self.question_count == 1:
+        minutes_elapsed = elapsed_seconds / 60.0
+        
+        if minutes_elapsed < 2:
+            # First 2 minutes: Opening, establish understanding
             self.phase = "opening"
-        elif self.question_count <= 5:
-            self.phase = "follow_up"
-        elif self.question_count == 6:
-            self.phase = "final"
+        elif minutes_elapsed < 8:
+            # Minutes 2-8: Deep exploration with challenges
+            self.phase = "exploration"
+        elif minutes_elapsed < 9.5:
+            # Minutes 8-9.5: Synthesis and connections
+            self.phase = "synthesis"
         else:
+            # Final 30 seconds: Wrap up
             self.phase = "wrap_up"
     
     def get_truncated_history(self, full_history: List[Dict]) -> List[Dict]:
@@ -94,11 +101,32 @@ class ConversationManager:
         }
     
     def format_for_api(self, system_prompt: str, pdf_context: str, 
-                       conversation_history: List[Dict], new_message: str) -> List[Dict]:
+                       conversation_history: List[Dict], new_message: str,
+                       elapsed_seconds: int = 0) -> List[Dict]:
         """Format the complete message list for OpenAI API"""
         
-        # Combine system prompt with PDF context
-        full_system_prompt = f"{system_prompt}\n\n## READING MATERIALS:\n{pdf_context}"
+        minutes_elapsed = elapsed_seconds / 60.0
+        remaining_minutes = max(0, self.total_session_minutes - minutes_elapsed)
+        
+        # Add time context to system prompt
+        time_context = f"\n\n## CURRENT SESSION STATUS:\n"
+        time_context += f"- Time elapsed: {minutes_elapsed:.1f} minutes\n"
+        time_context += f"- Time remaining: {remaining_minutes:.1f} minutes\n"
+        time_context += f"- Current phase: {self.phase}\n"
+        time_context += f"- Questions asked so far: {self.question_count}\n"
+        
+        # Phase-specific guidance
+        if self.phase == "opening":
+            time_context += "\nFocus: Establish baseline understanding with a clear, accessible question."
+        elif self.phase == "exploration":
+            time_context += "\nFocus: Challenge, probe deeper, introduce complications or counterpoints."
+        elif self.phase == "synthesis":
+            time_context += "\nFocus: Connect to larger themes, modern applications, broader implications."
+        elif self.phase == "wrap_up":
+            time_context += "\nFocus: Provide a brief reflective synthesis (no new questions)."
+        
+        # Combine system prompt with PDF context and time context
+        full_system_prompt = f"{system_prompt}\n\n## READING MATERIALS:\n{pdf_context}{time_context}"
         
         messages = [
             {"role": "system", "content": full_system_prompt}

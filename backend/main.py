@@ -297,6 +297,8 @@ async def ai_chat(request: ChatMessageRequest):
             "question_count": metadata.get('question_count', 0),
             "phase": metadata.get('phase', 'unknown'),
             "should_wrap_up": metadata.get('should_wrap_up', False),
+            "elapsed_seconds": metadata.get('elapsed_seconds', 0),
+            "minutes_elapsed": metadata.get('minutes_elapsed', 0),
             "token_usage": metadata.get('token_usage', {}),
             "session_id": request.session_id
         }
