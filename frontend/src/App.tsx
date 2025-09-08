@@ -119,39 +119,48 @@ function StudentFlow() {
     setCurrentView('session')
   }
 
-  const handleSessionComplete = async (transcript: any[]) => {
+  const handleSessionComplete = async (transcript: any[], evaluation?: any) => {
     setSessionTranscript(transcript)
     
-    // Submit to backend
-    try {
-      const response = await fetch(`${apiUrl}/sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          student_id: parseInt(selectedStudent),
-          assignment_id: parseInt(selectedAssignment),
-          transcript: transcript,
-          duration_seconds: 600 - transcript.length * 15 // Mock duration calculation
+    // Use evaluation data if available (from AI system), otherwise fall back to legacy system
+    if (evaluation) {
+      // Store evaluation data from AI system
+      sessionStorage.setItem('lastScore', evaluation.score?.toString() || '75')
+      sessionStorage.setItem('lastScoreCategory', evaluation.category || 'yellow')
+      sessionStorage.setItem('lastFeedback', evaluation.feedback || 'No feedback available')
+      setCurrentView('results')
+    } else {
+      // Legacy fallback: Submit to old backend
+      try {
+        const response = await fetch(`${apiUrl}/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            student_id: parseInt(selectedStudent),
+            assignment_id: parseInt(selectedAssignment),
+            transcript: transcript,
+            duration_seconds: 600 - transcript.length * 15 // Mock duration calculation
+          })
         })
-      })
-      
-      const data = await response.json()
-      
-      if (data.error) {
-        alert(data.error)
-        setCurrentView('selection')
-      } else {
-        // Store the score and feedback from backend
-        sessionStorage.setItem('lastScore', data.score)
-        sessionStorage.setItem('lastScoreCategory', data.score_category)
-        sessionStorage.setItem('lastFeedback', data.feedback)
-        setCurrentView('results')
+        
+        const data = await response.json()
+        
+        if (data.error) {
+          alert(data.error)
+          setCurrentView('selection')
+        } else {
+          // Store the score and feedback from backend
+          sessionStorage.setItem('lastScore', data.score)
+          sessionStorage.setItem('lastScoreCategory', data.score_category)
+          sessionStorage.setItem('lastFeedback', data.feedback)
+          setCurrentView('results')
+        }
+      } catch (error) {
+        alert('Error submitting session')
+        setCurrentView('results') // Still show results even if submission failed
       }
-    } catch (error) {
-      alert('Error submitting session')
-      setCurrentView('results') // Still show results even if submission failed
     }
   }
 

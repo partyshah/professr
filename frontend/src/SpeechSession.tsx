@@ -5,7 +5,7 @@ interface SpeechSessionProps {
   studentName: string
   assignmentId: number
   assignmentTitle: string
-  onComplete: (transcript: any[]) => void
+  onComplete: (transcript: any[], evaluation?: any) => void
   onCancel: () => void
 }
 
@@ -334,6 +334,7 @@ function SpeechSession({
     }
     
     // Evaluate AI session if we have a session ID
+    let evaluation = null
     if (aiSessionId) {
       try {
         const evaluationResponse = await fetch(`${apiUrl}/evaluate-ai-session?session_id=${aiSessionId}`, {
@@ -344,7 +345,7 @@ function SpeechSession({
         })
         
         if (evaluationResponse.ok) {
-          const evaluation = await evaluationResponse.json()
+          evaluation = await evaluationResponse.json()
           console.log('Session evaluated:', evaluation)
         }
       } catch (error) {
@@ -352,7 +353,7 @@ function SpeechSession({
       }
     }
     
-    onComplete(transcript)
+    onComplete(transcript, evaluation)
   }
 
   return (

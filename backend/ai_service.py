@@ -167,28 +167,29 @@ class AITutorService:
             
             evaluation = response.choices[0].message.content
             
-            # Parse evaluation to extract score and category
-            # This is a simple parsing - you might want to make it more robust
-            lines = evaluation.split('\n')
-            score = 75  # Default score
-            category = "good"  # Default category
+            # Determine overall score/category from the evaluation text
+            # Look for Green/Yellow/Red indicators to determine overall performance
+            evaluation_lower = evaluation.lower()
+            green_count = evaluation_lower.count('green')
+            yellow_count = evaluation_lower.count('yellow')
+            red_count = evaluation_lower.count('red')
             
-            for line in lines:
-                if 'score' in line.lower() and ':' in line:
-                    try:
-                        score = int(''.join(filter(str.isdigit, line.split(':')[1])))
-                    except:
-                        pass
-                elif 'category' in line.lower() and ':' in line:
-                    cat_text = line.split(':')[1].strip().lower()
-                    if 'excellent' in cat_text:
-                        category = "excellent"
-                    elif 'good' in cat_text:
-                        category = "good"
-                    elif 'satisfactory' in cat_text:
-                        category = "satisfactory"
-                    else:
-                        category = "needs improvement"
+            # Determine category based on color distribution
+            if green_count >= 3:  # Mostly green
+                category = "green"
+                score = 90
+            elif green_count >= 2 and yellow_count <= 2:  # More green than yellow/red
+                category = "green"
+                score = 85
+            elif yellow_count >= 2 and red_count <= 1:  # Mostly yellow with little red
+                category = "yellow"
+                score = 75
+            elif red_count >= 2:  # Multiple reds
+                category = "red"
+                score = 60
+            else:  # Mixed results, lean toward yellow
+                category = "yellow"
+                score = 70
             
             return {
                 'score': score,
