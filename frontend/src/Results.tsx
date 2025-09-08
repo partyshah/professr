@@ -17,8 +17,7 @@ function Results({
   transcript, 
   score = 85, 
   scoreCategory = 'green',
-  feedback = 'Good analysis with clear examples. Consider exploring counterarguments more deeply.',
-  onBack 
+  feedback = 'Good analysis with clear examples. Consider exploring counterarguments more deeply.'
 }: ResultsProps) {
   const [showNotification, setShowNotification] = useState(false)
   

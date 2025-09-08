@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
 import heatherPhoto from './assets/Heather James photo.png'
-import professrLogo from './assets/Professr Logo.png'
 
 interface SpeechSessionProps {
   studentId: number
@@ -23,8 +22,7 @@ function SpeechSession({
   studentName, 
   assignmentId, 
   assignmentTitle, 
-  onComplete, 
-  onCancel 
+  onComplete
 }: SpeechSessionProps) {
   const [timeLeft, setTimeLeft] = useState(600) // 10 minutes in seconds
   const [sessionState, setSessionState] = useState<SessionState>('not_started')
