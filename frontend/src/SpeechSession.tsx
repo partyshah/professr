@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import heatherPhoto from './assets/Heather James photo.png'
+import springImage from './assets/spring_image.jpeg'
 
 interface SpeechSessionProps {
   studentId: number
@@ -426,6 +426,30 @@ function SpeechSession({
           {formatTime(timeLeft)}
         </div>
 
+        {/* End Session button in bottom left corner of white container */}
+        {transcript.length > 0 && (
+          <button
+            onClick={handleComplete}
+            disabled={!sessionInitialized}
+            style={{
+              position: 'absolute',
+              bottom: '20px',
+              left: '20px',
+              padding: '12px 20px',
+              backgroundColor: sessionInitialized ? '#f44336' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: sessionInitialized ? 'pointer' : 'not-allowed',
+              opacity: sessionInitialized ? 1 : 0.6,
+              fontSize: '14px'
+            }}
+            title={sessionInitialized ? 'End the session' : 'Please wait for session to initialize'}
+          >
+            End Session
+          </button>
+        )}
+
       {/* Professor Avatar Area */}
       <div style={{
         height: '200px',
@@ -438,8 +462,8 @@ function SpeechSession({
       }}>
         {/* Professor Avatar */}
         <img 
-          src={heatherPhoto} 
-          alt="Professor Heather James"
+          src={springImage} 
+          alt="Professor"
           style={{
             width: '140px',
             height: '120px',
@@ -566,23 +590,6 @@ function SpeechSession({
                 Submit Response
               </button>
             )}
-            
-            <button
-              onClick={handleComplete}
-              disabled={!sessionInitialized}
-              style={{
-                padding: '12px 20px',
-                backgroundColor: sessionInitialized ? '#f44336' : '#ccc',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: sessionInitialized ? 'pointer' : 'not-allowed',
-                opacity: sessionInitialized ? 1 : 0.6
-              }}
-              title={sessionInitialized ? 'End the session' : 'Please wait for session to initialize'}
-            >
-              End Session
-            </button>
           </>
         )}
       </div>
