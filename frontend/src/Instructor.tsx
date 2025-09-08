@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import professrLogo from './assets/Professr Logo.png'
 
 interface Session {
   session_id: number
@@ -93,72 +94,146 @@ function Instructor() {
 
   if (!isAuthenticated) {
     return (
-      <div className="card" style={{ maxWidth: '400px', margin: '50px auto', padding: '30px' }}>
-        <h2>Instructor Access</h2>
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#f5f5f5',
+        padding: '2rem'
+      }}>
+        {/* Main content area */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center',
+          paddingTop: '5vh'
+        }}>
+          <div style={{
+            maxWidth: '600px',
+            width: '100%',
+            padding: '30px 65px 50px 65px',
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h2 style={{
+              marginBottom: '30px',
+              fontSize: '1.8rem',
+              fontWeight: '600',
+              color: '#333',
+              textAlign: 'center'
+            }}>
+              Instructor Access
+            </h2>
+            <div style={{ marginBottom: '25px' }}>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                placeholder="Password"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '16px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  transition: 'border-color 0.3s ease',
+                  color: '#333'
+                }}
+                onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = '#333'}
+                onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = '#ddd'}
+              />
+            </div>
+            <button
+              onClick={handleLogin}
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: '16px',
+                fontWeight: '600',
+                backgroundColor: '#333',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease'
+              }}
+              onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
+              onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
+            >
+              Login
+            </button>
+            {error && (
+              <p style={{ 
+                color: '#e74c3c', 
+                marginTop: '15px', 
+                textAlign: 'center',
+                fontSize: '14px'
+              }}>
+                {error}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Professr Logo at bottom */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          padding: '1rem'
+        }}>
+          <img 
+            src={professrLogo} 
+            alt="Professr Logo" 
             style={{
-              width: '100%',
-              padding: '8px',
-              fontSize: '16px',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
+              height: '60px',
+              width: 'auto'
             }}
           />
+          <span style={{
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            color: '#333'
+          }}>
+            Professr
+          </span>
         </div>
-        <button
-          onClick={handleLogin}
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '16px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Login
-        </button>
-        {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+    <div style={{ padding: '20px clamp(2rem, 5vw, 8rem)', maxWidth: '95%', margin: '0 auto' }}>
+      <div style={{ marginBottom: '30px' }}>
         <h1>Instructor Dashboard</h1>
-        <Link
-          to="/"
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#666',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: '4px',
-            display: 'inline-block'
-          }}
-        >
-          Student View
-        </Link>
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ padding: '20px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <label style={{ marginRight: '8px' }}>Assignment:</label>
             <select
               value={selectedAssignment}
               onChange={(e) => setSelectedAssignment(e.target.value)}
-              style={{ padding: '4px', fontSize: '14px' }}
+              style={{ 
+                padding: '12px', 
+                fontSize: '16px',
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+                outline: 'none',
+                transition: 'border-color 0.3s ease',
+                color: '#333',
+                minWidth: '200px'
+              }}
+              onFocus={(e) => (e.target as HTMLSelectElement).style.borderColor = '#333'}
+              onBlur={(e) => (e.target as HTMLSelectElement).style.borderColor = '#ddd'}
             >
               <option value="">All Assignments</option>
               {assignments.map(assignment => (
@@ -169,37 +244,21 @@ function Instructor() {
             </select>
           </div>
           <div>
-            <label style={{ marginRight: '8px' }}>Student:</label>
             <input
               type="text"
               placeholder="Search by name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ padding: '4px', fontSize: '14px', width: '200px' }}
+              style={{ padding: '12px', fontSize: '16px', border: '1px solid #ddd', borderRadius: '8px', outline: 'none', transition: 'border-color 0.3s ease', color: '#333', minWidth: '200px' }}
+              onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = '#333'}
+              onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = '#ddd'}
             />
           </div>
-          <button
-            onClick={() => {
-              setSelectedAssignment('')
-              setSearchTerm('')
-            }}
-            style={{
-              padding: '4px 12px',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Clear Filters
-          </button>
         </div>
       </div>
 
       {/* Sessions Table */}
-      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+      <div className="card" style={{ padding: '0', overflow: 'hidden', maxWidth: 'none' }}>
         {loading ? (
           <p style={{ padding: '20px', textAlign: 'center' }}>Loading...</p>
         ) : filteredSessions.length === 0 ? (
@@ -208,12 +267,12 @@ function Instructor() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ backgroundColor: '#f5f5f5' }}>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Student</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Assignment</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Score</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Status</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Date</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Actions</th>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd', fontSize: '1.2rem', fontWeight: '700', color: '#333' }}>Student</th>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd', fontSize: '1.2rem', fontWeight: '700', color: '#333' }}>Assignment</th>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd', fontSize: '1.2rem', fontWeight: '700', color: '#333' }}>Score</th>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd', fontSize: '1.2rem', fontWeight: '700', color: '#333' }}>Status</th>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd', fontSize: '1.2rem', fontWeight: '700', color: '#333' }}>Date</th>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #ddd', fontSize: '1.2rem', fontWeight: '700', color: '#333' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -223,11 +282,9 @@ function Instructor() {
                     <td style={{ padding: '12px' }}>{session.student_name}</td>
                     <td style={{ padding: '12px' }}>{session.assignment_title}</td>
                     <td style={{ padding: '12px' }}>
-                      <span style={{
-                        color: session.score_category === 'green' ? '#4CAF50' : 
-                               session.score_category === 'yellow' ? '#ff9800' : '#f44336'
-                      }}>
-                        {session.final_score}/100
+                      <span style={{ fontSize: '16px' }}>
+                        {session.score_category === 'green' ? '🟢' : 
+                         session.score_category === 'yellow' ? '🟡' : '🔴'}
                       </span>
                     </td>
                     <td style={{ padding: '12px' }}>{session.status}</td>
