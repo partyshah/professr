@@ -10,7 +10,7 @@ interface SpeechSessionProps {
   onCancel: () => void
 }
 
-type SessionState = 'ai_speaking' | 'student_recording' | 'processing' | 'loading_response'
+type SessionState = 'not_started' | 'ai_speaking' | 'student_recording' | 'processing' | 'loading_response'
 
 interface Turn {
   speaker: 'student' | 'ai'
@@ -26,7 +26,7 @@ function SpeechSession({
   onCancel 
 }: SpeechSessionProps) {
   const [timeLeft, setTimeLeft] = useState(600) // 10 minutes in seconds
-  const [sessionState, setSessionState] = useState<SessionState>('ai_speaking')
+  const [sessionState, setSessionState] = useState<SessionState>('not_started')
   const [transcript, setTranscript] = useState<Turn[]>([])
   const [isRecording, setIsRecording] = useState(false)
   const [, setCurrentAiResponse] = useState('')
