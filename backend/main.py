@@ -327,6 +327,9 @@ async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
         # Get session stats
         stats = ai_service.get_session_stats(session_id)
         
+        # Get the formatted transcript for database storage
+        formatted_transcript = ai_service.get_formatted_transcript(session_id)
+        
         # Create session record in database
         new_session = Session(
             student_id=student_id,
@@ -334,11 +337,7 @@ async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
             status="completed",
             started_at=datetime.now(),
             completed_at=datetime.now(),
-            full_transcript={
-                "type": "ai_conversation",
-                "question_count": evaluation.get('question_count', 6),
-                "evaluation": evaluation
-            },
+            full_transcript=formatted_transcript,
             final_score=evaluation.get('score', 75),
             score_category="green" if evaluation.get('score', 75) >= 85 else 
                           "yellow" if evaluation.get('score', 75) >= 70 else "red",
