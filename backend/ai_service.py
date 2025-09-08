@@ -217,6 +217,31 @@ class AITutorService:
             'pdf_count': len(session_data['pdf_paths'])
         }
     
+    def get_formatted_transcript(self, session_id: str) -> List[Dict]:
+        """Get conversation history formatted for database storage"""
+        
+        if session_id not in self.sessions:
+            return []
+        
+        session_data = self.sessions[session_id]
+        conversation_history = session_data['conversation_history']
+        
+        # Transform AI service format to expected transcript format
+        formatted_transcript = []
+        for msg in conversation_history:
+            if msg['role'] == 'user':
+                formatted_transcript.append({
+                    'speaker': 'student',
+                    'text': msg['content']
+                })
+            elif msg['role'] == 'assistant':
+                formatted_transcript.append({
+                    'speaker': 'ai',
+                    'text': msg['content']
+                })
+        
+        return formatted_transcript
+    
     def cleanup_session(self, session_id: str):
         """Clean up session data to free memory"""
         if session_id in self.sessions:
