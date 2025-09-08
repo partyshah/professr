@@ -191,10 +191,10 @@ function Results({
       <h2 style={{ textAlign: 'center', marginBottom: '40px' }}>Assessment Feedback</h2>
       
       {/* Two-column layout */}
-      <div style={{ display: 'flex', gap: '40px', marginBottom: '40px' }}>
+      <div style={{ display: 'flex', gap: '40px', marginBottom: '40px', position: 'relative' }}>
         
         {/* Left Column - Scoring and Feedback */}
-        <div style={{ flex: 1 }}>
+        <div style={{ width: 'calc(50% - 20px)' }}>
           {/* Student Info */}
           <div style={{ marginBottom: '30px' }}>
             <p><strong>Student:</strong> {studentName}</p>
@@ -203,15 +203,16 @@ function Results({
 
           {/* Score Section */}
           <div style={{
-            padding: '20px',
-            backgroundColor: '#f5f5f5',
+            padding: '15px 20px',
+            backgroundColor: 'white',
             borderRadius: '8px',
-            marginBottom: '20px'
+            marginBottom: '20px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
             <h3>Overall Assessment</h3>
             <div style={{ 
               textAlign: 'center',
-              margin: '20px 0'
+              margin: '15px 0'
             }}>
               <div style={{ 
                 fontSize: '80px', 
@@ -245,8 +246,9 @@ function Results({
           {/* Feedback Section */}
           <div style={{
             padding: '20px',
-            backgroundColor: '#f5f5f5',
-            borderRadius: '8px'
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
           }}>
             <h3>Feedback</h3>
             <div style={{ 
@@ -261,6 +263,12 @@ function Results({
                   return <br key={index} />
                 }
                 
+                // Check if this line is a learning objective title
+                const isObjectiveTitle = line.includes('Explain and Apply Institutions & Principles') ||
+                                       line.includes('Interpret and Compare Theories & Justifications') ||
+                                       line.includes('Evaluate Effectiveness & Fairness') ||
+                                       line.includes('Propose and Justify Reforms')
+                
                 // Simple emoji replacement - handle all common patterns
                 let processedLine = line
                 processedLine = processedLine.replace(/\[Green\]/gi, '🟢')
@@ -273,6 +281,20 @@ function Results({
                 processedLine = processedLine.replace(/\bYellow\b/g, '🟡')
                 processedLine = processedLine.replace(/\bRed\b/g, '🔴')
                 
+                // If it's an objective title, make the title part bold
+                if (isObjectiveTitle) {
+                  const colonIndex = processedLine.indexOf(':')
+                  if (colonIndex > -1) {
+                    const title = processedLine.substring(0, colonIndex)
+                    const rest = processedLine.substring(colonIndex)
+                    return (
+                      <div key={index} style={{ marginBottom: '8px' }}>
+                        <strong>{title}</strong>{rest}
+                      </div>
+                    )
+                  }
+                }
+                
                 return (
                   <div key={index} style={{ marginBottom: '8px' }}>
                     {processedLine}
@@ -284,15 +306,26 @@ function Results({
         </div>
 
         {/* Right Column - Transcript */}
-        <div style={{ flex: 1 }}>
-          <h3>Conversation Transcript</h3>
+        <div style={{ 
+          flex: 1, 
+          position: 'absolute',
+          right: 0,
+          top: '48px',
+          bottom: 0,
+          width: 'calc(50% - 20px)'
+        }}>
+          <h3 style={{ marginBottom: '15px' }}>Conversation Transcript</h3>
           <div style={{
-            maxHeight: '600px',
+            position: 'absolute',
+            top: '45px',
+            bottom: 0,
+            left: 0,
+            right: 0,
             overflowY: 'auto',
             border: '1px solid #ddd',
             borderRadius: '8px',
             padding: '20px',
-            marginTop: '15px'
+            backgroundColor: 'white'
           }}>
             {transcript.map((turn, index) => (
               <div key={index} style={{
