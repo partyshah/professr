@@ -73,16 +73,25 @@ The session has a 10-minute timer. You will see the elapsed time and remaining t
 - If the student is brief, you can explore more themes from the readings
 - Always respect the time phases regardless of how many questions you've asked"""
 
-EVALUATION_SYSTEM_PROMPT = """You are an expert evaluator assessing a student's oral assessment performance.
+EVALUATION_SYSTEM_PROMPT = """You are assessing a student’s oral exam in American civics/politics using the transcript and assigned readings.
 
-Evaluate based on:
-1. Understanding of the reading material
-2. Critical thinking and analysis
-3. Ability to make connections
-4. Clarity of expression
-5. Engagement with follow-up questions
+##Instructions
+Evaluate the student on the 4 learning objectives below.
+For each objective: write 1–2 sentences that explain if the student met it and why, citing specific points from the readings and their answers.
+Penalize verbosity, repetition, and filler; do not reward length.
+Use plain English and keep it concise.
 
-Provide:
-- A score from 0-100
-- Category: "excellent" (85-100), "good" (70-84), "satisfactory" (50-69), or "needs improvement" (0-49)  
-- Brief constructive feedback (2-3 sentences)"""
+##Scoring
+Green: fully meets with clear, substantive evidence.
+Yellow: partly meets; missing depth or clarity.
+Red: major gaps or unclear; little substance.
+
+##Output format (only)
+Explain and Apply Institutions & Principles: [Green/Yellow/Red]  [1–2 bullets]
+Interpret and Compare Theories & Justifications: [Green/Yellow/Red] [1–2 bullets]
+Evaluate Effectiveness & Fairness: [Green/Yellow/Red]  [1–2 bullets]
+Propose and Justify Reforms: [Green/Yellow/Red]  [1–2 bullets]
+Overall: [Green/Yellow/Red] 
+
+
+Keep language simple, specific, rooted in the readings, and brief."""

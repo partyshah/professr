@@ -172,7 +172,47 @@ function Results({
         </div>
         <div style={{ flex: 2 }}>
           <h3>Feedback</h3>
-          <p>{feedback}</p>
+          <div style={{ 
+            whiteSpace: 'pre-line', 
+            lineHeight: '1.6',
+            fontSize: '14px'
+          }}>
+            {feedback.split('\n').map((line, index) => {
+              // Skip empty lines
+              if (line.trim() === '') {
+                return <br key={index} />
+              }
+              
+              // Format lines with color indicators
+              
+              // Replace color indicators with styled versions
+              if (line.includes('Green')) {
+                const parts = line.split('Green')
+                return (
+                  <div key={index} style={{ marginBottom: '8px' }}>
+                    {parts[0]}<span style={{ color: '#4CAF50', fontWeight: 'bold' }}>Green</span>{parts[1]}
+                  </div>
+                )
+              } else if (line.includes('Yellow')) {
+                const parts = line.split('Yellow')
+                return (
+                  <div key={index} style={{ marginBottom: '8px' }}>
+                    {parts[0]}<span style={{ color: '#ff9800', fontWeight: 'bold' }}>Yellow</span>{parts[1]}
+                  </div>
+                )
+              } else if (line.includes('Red')) {
+                const parts = line.split('Red')
+                return (
+                  <div key={index} style={{ marginBottom: '8px' }}>
+                    {parts[0]}<span style={{ color: '#f44336', fontWeight: 'bold' }}>Red</span>{parts[1]}
+                  </div>
+                )
+              }
+              
+              // Regular lines
+              return <div key={index} style={{ marginBottom: '4px' }}>{line}</div>
+            })}
+          </div>
         </div>
       </div>
 
