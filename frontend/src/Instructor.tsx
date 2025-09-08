@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import professrLogo from './assets/Professr Logo.png'
 
 interface Session {
   session_id: number
@@ -93,40 +94,117 @@ function Instructor() {
 
   if (!isAuthenticated) {
     return (
-      <div className="card" style={{ maxWidth: '400px', margin: '50px auto', padding: '30px' }}>
-        <h2>Instructor Access</h2>
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#f5f5f5',
+        padding: '2rem'
+      }}>
+        {/* Main content area */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          flex: 1,
+          justifyContent: 'center',
+          paddingTop: '5vh'
+        }}>
+          <div style={{
+            maxWidth: '600px',
+            width: '100%',
+            padding: '30px 65px 50px 65px',
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h2 style={{
+              marginBottom: '30px',
+              fontSize: '1.8rem',
+              fontWeight: '600',
+              color: '#333',
+              textAlign: 'center'
+            }}>
+              Instructor Access
+            </h2>
+            <div style={{ marginBottom: '25px' }}>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                placeholder="Password"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '16px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  transition: 'border-color 0.3s ease',
+                  color: '#333'
+                }}
+                onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = '#333'}
+                onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = '#ddd'}
+              />
+            </div>
+            <button
+              onClick={handleLogin}
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: '16px',
+                fontWeight: '600',
+                backgroundColor: '#333',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease'
+              }}
+              onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
+              onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
+            >
+              Login
+            </button>
+            {error && (
+              <p style={{ 
+                color: '#e74c3c', 
+                marginTop: '15px', 
+                textAlign: 'center',
+                fontSize: '14px'
+              }}>
+                {error}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Professr Logo at bottom */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          padding: '1rem'
+        }}>
+          <img 
+            src={professrLogo} 
+            alt="Professr Logo" 
             style={{
-              width: '100%',
-              padding: '8px',
-              fontSize: '16px',
-              border: '1px solid #ccc',
-              borderRadius: '4px'
+              height: '60px',
+              width: 'auto'
             }}
           />
+          <span style={{
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            color: '#333'
+          }}>
+            Professr
+          </span>
         </div>
-        <button
-          onClick={handleLogin}
-          style={{
-            width: '100%',
-            padding: '12px',
-            fontSize: '16px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Login
-        </button>
-        {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
       </div>
     )
   }
