@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
+import heatherPhoto from './assets/Heather James photo.png'
 
 interface SpeechSessionProps {
   studentId: number
@@ -382,21 +383,18 @@ function SpeechSession({
         position: 'relative'
       }}>
         {/* Professor Avatar */}
-        <div style={{
-          width: '80px',
-          height: '80px',
-          borderRadius: '50%',
-          backgroundColor: '#2196F3',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '24px',
-          color: 'white',
-          position: 'relative',
-          zIndex: 2
-        }}>
-          👨‍🏫
-        </div>
+        <img 
+          src={heatherPhoto} 
+          alt="Professor Heather James"
+          style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            objectFit: 'cover',
+            position: 'relative',
+            zIndex: 2
+          }}
+        />
 
         {/* Pulsing Animation for AI Speaking */}
         {sessionState === 'ai_speaking' && (
