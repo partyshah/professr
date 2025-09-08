@@ -291,29 +291,59 @@ function StudentFlow() {
         )}
       </div>
 
-      {/* Professr Logo at bottom */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-        padding: '1rem'
-      }}>
-        <img 
-          src={professrLogo} 
-          alt="Professr Logo" 
-          style={{
-            height: '60px',
-            width: 'auto'
-          }}
-        />
-        <span style={{
-          fontSize: '2rem',
-          fontWeight: 'bold',
-          color: '#333'
+      {/* Professr Logo - positioned based on current view */}
+      {currentView === 'session' ? (
+        // Logo at top left during session
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          zIndex: 1000
         }}>
-          Professr
-        </span>
-      </div>
+          <img 
+            src={professrLogo} 
+            alt="Professr Logo" 
+            style={{
+              height: '50px',
+              width: 'auto'
+            }}
+          />
+          <span style={{
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: '#333'
+          }}>
+            Professr
+          </span>
+        </div>
+      ) : (
+        // Logo at bottom during selection/results
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          padding: '1rem'
+        }}>
+          <img 
+            src={professrLogo} 
+            alt="Professr Logo" 
+            style={{
+              height: '60px',
+              width: 'auto'
+            }}
+          />
+          <span style={{
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            color: '#333'
+          }}>
+            Professr
+          </span>
+        </div>
+      )}
       
       {/* Directions Modal */}
       {showDirectionsModal && (

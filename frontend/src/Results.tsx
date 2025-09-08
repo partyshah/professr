@@ -22,13 +22,48 @@ function Results({
 }: ResultsProps) {
   const [showNotification, setShowNotification] = useState(false)
   
-  const getScoreColor = (category: string) => {
+  const getScoreEmoji = (category: string) => {
     switch(category) {
-      case 'green': return '#4CAF50'
-      case 'yellow': return '#ff9800'
-      case 'red': return '#f44336'
-      default: return '#666'
+      case 'green': return '🟢'
+      case 'yellow': return '🟡'
+      case 'red': return '🔴'
+      default: return '⚪'
     }
+  }
+
+  const getScoreText = (category: string) => {
+    switch(category) {
+      case 'green': return 'On track!'
+      case 'yellow': return 'Needs improvement'
+      case 'red': return 'Unsatisfactory'
+      default: return 'Unknown'
+    }
+  }
+
+  // Extract Overall feedback line - get everything after "Overall:"
+  const getOverallFeedback = (feedback: string) => {
+    const lines = feedback.split('\n')
+    const overallLine = lines.find(line => line.toLowerCase().includes('overall'))
+    
+    if (overallLine) {
+      // Find everything after "Overall:" including color indicators
+      const match = overallLine.match(/overall:\s*(.+)/i)
+      if (match) {
+        let overallText = match[1] // Gets everything after "Overall:"
+        // Clean up color brackets but keep the explanation
+        overallText = overallText.replace(/\[Red\]|\[Yellow\]|\[Green\]/gi, '')
+        overallText = overallText.replace(/^\s*-\s*/, '') // Remove leading dash
+        return overallText.trim()
+      }
+    }
+    return ''
+  }
+
+  // Remove Overall line from bottom section
+  const getDetailedFeedback = (feedback: string) => {
+    return feedback.split('\n')
+      .filter(line => !line.toLowerCase().includes('overall:'))
+      .join('\n')
   }
   
   const generatePDF = () => {
@@ -125,7 +160,15 @@ function Results({
   }
 
   return (
-    <div className="card" style={{ maxWidth: '800px', margin: '0 auto', padding: '30px', position: 'relative' }}>
+    <div style={{ 
+      width: '90vw',
+      margin: '40px auto', 
+      padding: '40px',
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+      position: 'relative' 
+    }}>
       {/* Download Notification */}
       {showNotification && (
         <div style={{
@@ -146,129 +189,145 @@ function Results({
         </div>
       )}
       
-      <h2>Assessment Complete</h2>
-      <div style={{ marginBottom: '30px' }}>
-        <p><strong>Student:</strong> {studentName}</p>
-        <p><strong>Assignment:</strong> {assignmentTitle}</p>
-      </div>
-
-      <div style={{
-        display: 'flex',
-        gap: '20px',
-        marginBottom: '30px',
-        padding: '20px',
-        backgroundColor: '#f5f5f5',
-        borderRadius: '8px'
-      }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '40px' }}>Assessment Feedback</h2>
+      
+      {/* Two-column layout */}
+      <div style={{ display: 'flex', gap: '40px', marginBottom: '40px' }}>
+        
+        {/* Left Column - Scoring and Feedback */}
         <div style={{ flex: 1 }}>
-          <h3>Score</h3>
-          <p style={{ 
-            fontSize: '36px', 
-            fontWeight: 'bold',
-            color: getScoreColor(scoreCategory)
+          {/* Student Info */}
+          <div style={{ marginBottom: '30px' }}>
+            <p><strong>Student:</strong> {studentName}</p>
+            <p><strong>Assignment:</strong> {assignmentTitle}</p>
+          </div>
+
+          {/* Score Section */}
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#f5f5f5',
+            borderRadius: '8px',
+            marginBottom: '20px'
           }}>
-            {score}/100
-          </p>
+            <h3>Overall Assessment</h3>
+            <div style={{ 
+              textAlign: 'center',
+              margin: '20px 0'
+            }}>
+              <div style={{ 
+                fontSize: '80px', 
+                marginBottom: '10px'
+              }}>
+                {getScoreEmoji(scoreCategory)}
+              </div>
+              {getOverallFeedback(feedback) ? (
+                <div style={{
+                  fontSize: '16px',
+                  color: '#333',
+                  textAlign: 'center',
+                  maxWidth: '400px',
+                  margin: '0 auto',
+                  lineHeight: '1.4'
+                }}>
+                  {getOverallFeedback(feedback)}
+                </div>
+              ) : (
+                <div style={{
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  color: '#333'
+                }}>
+                  {getScoreText(scoreCategory)}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Feedback Section */}
+          <div style={{
+            padding: '20px',
+            backgroundColor: '#f5f5f5',
+            borderRadius: '8px'
+          }}>
+            <h3>Feedback</h3>
+            <div style={{ 
+              whiteSpace: 'pre-line', 
+              lineHeight: '1.6',
+              fontSize: '14px',
+              marginTop: '15px'
+            }}>
+              {getDetailedFeedback(feedback).split('\n').map((line, index) => {
+                // Skip empty lines
+                if (line.trim() === '') {
+                  return <br key={index} />
+                }
+                
+                // Simple emoji replacement - handle all common patterns
+                let processedLine = line
+                processedLine = processedLine.replace(/\[Green\]/gi, '🟢')
+                processedLine = processedLine.replace(/\[Yellow\]/gi, '🟡')  
+                processedLine = processedLine.replace(/\[Red\]/gi, '🔴')
+                processedLine = processedLine.replace(/:\s*Green\b/gi, ': 🟢')
+                processedLine = processedLine.replace(/:\s*Yellow\b/gi, ': 🟡')
+                processedLine = processedLine.replace(/:\s*Red\b/gi, ': 🔴')
+                processedLine = processedLine.replace(/\bGreen\b/g, '🟢')
+                processedLine = processedLine.replace(/\bYellow\b/g, '🟡')
+                processedLine = processedLine.replace(/\bRed\b/g, '🔴')
+                
+                return (
+                  <div key={index} style={{ marginBottom: '8px' }}>
+                    {processedLine}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
-        <div style={{ flex: 2 }}>
-          <h3>Feedback</h3>
-          <div style={{ 
-            whiteSpace: 'pre-line', 
-            lineHeight: '1.6',
-            fontSize: '14px'
+
+        {/* Right Column - Transcript */}
+        <div style={{ flex: 1 }}>
+          <h3>Conversation Transcript</h3>
+          <div style={{
+            maxHeight: '600px',
+            overflowY: 'auto',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            padding: '20px',
+            marginTop: '15px'
           }}>
-            {feedback.split('\n').map((line, index) => {
-              // Skip empty lines
-              if (line.trim() === '') {
-                return <br key={index} />
-              }
-              
-              // Format lines with color indicators
-              
-              // Replace color indicators with styled versions
-              if (line.includes('Green')) {
-                const parts = line.split('Green')
-                return (
-                  <div key={index} style={{ marginBottom: '8px' }}>
-                    {parts[0]}<span style={{ color: '#4CAF50', fontWeight: 'bold' }}>Green</span>{parts[1]}
-                  </div>
-                )
-              } else if (line.includes('Yellow')) {
-                const parts = line.split('Yellow')
-                return (
-                  <div key={index} style={{ marginBottom: '8px' }}>
-                    {parts[0]}<span style={{ color: '#ff9800', fontWeight: 'bold' }}>Yellow</span>{parts[1]}
-                  </div>
-                )
-              } else if (line.includes('Red')) {
-                const parts = line.split('Red')
-                return (
-                  <div key={index} style={{ marginBottom: '8px' }}>
-                    {parts[0]}<span style={{ color: '#f44336', fontWeight: 'bold' }}>Red</span>{parts[1]}
-                  </div>
-                )
-              }
-              
-              // Regular lines
-              return <div key={index} style={{ marginBottom: '4px' }}>{line}</div>
-            })}
+            {transcript.map((turn, index) => (
+              <div key={index} style={{
+                marginBottom: '15px',
+                padding: '10px',
+                backgroundColor: turn.speaker === 'student' ? '#e3f2fd' : '#f5f5f5',
+                borderRadius: '8px'
+              }}>
+                <strong>{turn.speaker === 'student' ? 'Student' : 'AI Professor'}:</strong>
+                <p style={{ margin: '5px 0' }}>{turn.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      <div style={{ marginBottom: '30px' }}>
-        <h3>Conversation Transcript</h3>
-        <div style={{
-          maxHeight: '400px',
-          overflowY: 'auto',
-          border: '1px solid #ddd',
-          borderRadius: '8px',
-          padding: '20px'
-        }}>
-          {transcript.map((turn, index) => (
-            <div key={index} style={{
-              marginBottom: '15px',
-              padding: '10px',
-              backgroundColor: turn.speaker === 'student' ? '#e3f2fd' : '#f5f5f5',
-              borderRadius: '8px'
-            }}>
-              <strong>{turn.speaker === 'student' ? 'Student' : 'AI Professor'}:</strong>
-              <p style={{ margin: '5px 0' }}>{turn.text}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
         <button
           onClick={handleDownloadPDF}
           style={{
-            flex: 1,
-            padding: '12px',
+            padding: '12px 55px',
             fontSize: '16px',
-            backgroundColor: '#4CAF50',
+            fontWeight: '600',
+            backgroundColor: '#333',
             color: 'white',
             border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
+            borderRadius: '20px',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s ease'
           }}
+          onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
+          onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
         >
-          📄 Download PDF
-        </button>
-        <button
-          onClick={onBack}
-          style={{
-            flex: 1,
-            padding: '12px',
-            fontSize: '16px',
-            backgroundColor: '#2196F3',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Back to Home
+          Download PDF
         </button>
       </div>
     </div>

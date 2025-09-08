@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import heatherPhoto from './assets/Heather James photo.png'
+import professrLogo from './assets/Professr Logo.png'
 
 interface SpeechSessionProps {
   studentId: number
@@ -369,19 +370,44 @@ function SpeechSession({
   }
 
   return (
-    <div className="card" style={{ maxWidth: '600px', margin: '0 auto', padding: '30px' }}>
-      <h2>{assignmentTitle}</h2>
-      <p>Student: {studentName}</p>
-      
+    <div style={{ position: 'relative', minHeight: '100vh' }}>
+      {/* Logo removed - now handled by parent component */}
+
+      {/* Big white container taking up most of the screen */}
       <div style={{
-        fontSize: '48px',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        margin: '30px 0',
-        color: timeLeft < 60 ? '#ff0000' : '#000'
+        backgroundColor: 'white',
+        width: '90vw',
+        margin: '40px auto',
+        minHeight: 'calc(100vh - 80px)',
+        borderRadius: '16px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+        position: 'relative',
+        padding: '40px'
       }}>
-        {formatTime(timeLeft)}
-      </div>
+        {/* Main content - centered */}
+        <div style={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          height: '100%',
+          justifyContent: 'center'
+        }}>
+          <h2>{assignmentTitle}</h2>
+          <p>Student: {studentName}</p>
+        </div>
+
+        {/* Timer in bottom right corner of white container */}
+        <div style={{
+          position: 'absolute',
+          bottom: '20px',
+          right: '20px',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          color: timeLeft < 60 ? '#ff0000' : '#333'
+        }}>
+          {formatTime(timeLeft)}
+        </div>
 
       {/* Professor Avatar Area */}
       <div style={{
@@ -398,9 +424,9 @@ function SpeechSession({
           src={heatherPhoto} 
           alt="Professor Heather James"
           style={{
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
+            width: '140px',
+            height: '120px',
+            borderRadius: '70px 70px 60px 60px',
             objectFit: 'cover',
             position: 'relative',
             zIndex: 2
@@ -411,9 +437,9 @@ function SpeechSession({
         {sessionState === 'ai_speaking' && (
           <div style={{
             position: 'absolute',
-            width: '80px',
-            height: '80px',
-            borderRadius: '50%',
+            width: '140px',
+            height: '120px',
+            borderRadius: '70px 70px 60px 60px',
             border: '3px solid #ff4444',
             animation: 'pulse 1s infinite',
             zIndex: 1
@@ -424,9 +450,9 @@ function SpeechSession({
         {sessionState === 'loading_response' && (
           <div style={{
             position: 'absolute',
-            width: '90px',
-            height: '90px',
-            borderRadius: '50%',
+            width: '150px',
+            height: '130px',
+            borderRadius: '75px 75px 65px 65px',
             border: '3px solid #f3f3f3',
             borderTop: '3px solid #2196F3',
             animation: 'spin 1s linear infinite',
@@ -456,13 +482,13 @@ function SpeechSession({
             </>
           )}
           {sessionState === 'ai_speaking' && !audioUrl && (
-            <p style={{ color: '#ff4444', fontWeight: 'bold' }}>AI Professor is speaking...</p>
+            <p style={{ color: '#000', fontWeight: 'bold' }}>AI Professor is speaking...</p>
           )}
           {sessionState === 'student_recording' && !isRecording && (
             <p style={{ color: '#4CAF50' }}>Starting recording for your response...</p>
           )}
           {sessionState === 'student_recording' && isRecording && (
-            <p style={{ color: '#4CAF50' }}>🎤 Recording... Click "Submit Response" when done</p>
+            <p style={{ color: '#000', fontWeight: 'bold' }}>Recording your turn...</p>
           )}
           {sessionState === 'processing' && (
             <p style={{ color: '#ff9800' }}>Processing your response...</p>
@@ -503,20 +529,23 @@ function SpeechSession({
       )}
 
       {/* Control Buttons */}
-      <div style={{ display: 'flex', gap: '10px', marginTop: '30px' }}>
+      <div style={{ display: 'flex', gap: '10px', marginTop: '30px', justifyContent: 'center' }}>
         {!transcript.length ? (
           <button
             onClick={handleStartSession}
             style={{
-              flex: 1,
-              padding: '15px',
-              fontSize: '18px',
-              backgroundColor: '#4CAF50',
+              padding: '12px 40px',
+              fontSize: '16px',
+              fontWeight: '600',
+              backgroundColor: '#333',
               color: 'white',
               border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
+              borderRadius: '20px',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s ease'
             }}
+            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
+            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
           >
             Start Assessment
           </button>
@@ -526,16 +555,20 @@ function SpeechSession({
               <button
                 onClick={submitRecording}
                 style={{
-                  flex: 1,
-                  padding: '12px',
-                  backgroundColor: '#2196F3',
+                  padding: '12px 40px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  backgroundColor: '#333',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s ease'
                 }}
+                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
+                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
               >
-                ✓ Submit Response
+                Submit Response
               </button>
             )}
             
@@ -557,20 +590,6 @@ function SpeechSession({
             </button>
           </>
         )}
-        
-        <button
-          onClick={onCancel}
-          style={{
-            padding: '12px 20px',
-            backgroundColor: '#666',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Cancel
-        </button>
       </div>
 
       <style>{`
@@ -599,6 +618,7 @@ function SpeechSession({
           100% { transform: scaleY(0.3); }
         }
       `}</style>
+      </div>
     </div>
   )
 }
