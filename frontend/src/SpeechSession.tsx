@@ -33,6 +33,7 @@ function SpeechSession({
   const [audioUrl, setAudioUrl] = useState<string>('')
   const [, setWaitingForPlay] = useState(false)
   const [aiSessionId, setAiSessionId] = useState<string | null>(null)
+  const [sessionInitialized, setSessionInitialized] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -249,6 +250,7 @@ function SpeechSession({
       
       const sessionData = await sessionResponse.json()
       setAiSessionId(sessionData.session_id)
+      setSessionInitialized(true)
       
       // Step 2: Get initial AI greeting
       const aiResponse = await fetch(`${apiUrl}/ai-chat`, {
@@ -334,9 +336,9 @@ function SpeechSession({
       mediaRecorderRef.current.stop()
     }
     
-    // Evaluate AI session if we have a session ID
+    // Always try to get proper AI evaluation
     let evaluation = null
-    if (aiSessionId) {
+    if (aiSessionId && sessionInitialized) {
       try {
         const evaluationResponse = await fetch(`${apiUrl}/evaluate-ai-session?session_id=${aiSessionId}`, {
           method: 'POST',
@@ -351,6 +353,15 @@ function SpeechSession({
         }
       } catch (error) {
         console.error('Error evaluating session:', error)
+      }
+    } else {
+      // If session wasn't properly initialized, create a basic evaluation
+      console.warn('Session ended without proper AI initialization')
+      evaluation = {
+        score: 70,
+        category: 'yellow',
+        feedback: 'Session ended before proper evaluation could be completed. This typically happens when ending the session too quickly after starting. Please allow the AI professor to begin speaking before ending future sessions.',
+        question_count: 0
       }
     }
     
@@ -530,14 +541,17 @@ function SpeechSession({
             
             <button
               onClick={handleComplete}
+              disabled={!sessionInitialized}
               style={{
                 padding: '12px 20px',
-                backgroundColor: '#f44336',
+                backgroundColor: sessionInitialized ? '#f44336' : '#ccc',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: 'pointer'
+                cursor: sessionInitialized ? 'pointer' : 'not-allowed',
+                opacity: sessionInitialized ? 1 : 0.6
               }}
+              title={sessionInitialized ? 'End the session' : 'Please wait for session to initialize'}
             >
               End Session
             </button>

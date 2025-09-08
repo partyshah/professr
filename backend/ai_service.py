@@ -148,9 +148,23 @@ class AITutorService:
         conversation_history = session_data['conversation_history']
         
         try:
-            # Format conversation for evaluation
+            # Check student participation levels before evaluation
+            student_messages = [msg for msg in conversation_history if msg['role'] == 'user']
+            total_student_chars = sum(len(msg['content'].strip()) for msg in student_messages)
+            
+            # If insufficient student participation, return appropriate feedback
+            if len(student_messages) <= 1 or total_student_chars < 50:
+                logger.warning(f"Insufficient student participation in session {session_id}: {len(student_messages)} messages, {total_student_chars} chars")
+                return {
+                    'score': 40,
+                    'category': 'red',
+                    'feedback': 'Explain and Apply Institutions & Principles: [Red] - Student did not provide sufficient responses to demonstrate understanding of institutional concepts.\n\nInterpret and Compare Theories & Justifications: [Red] - Minimal student participation prevented assessment of theoretical analysis skills.\n\nEvaluate Effectiveness & Fairness: [Red] - Student did not engage enough to show critical evaluation abilities.\n\nPropose and Justify Reforms: [Red] - No meaningful reform proposals were offered by the student.\n\nOverall: [Red] - Session ended with insufficient student participation to assess learning objectives.',
+                    'question_count': session_data['manager'].question_count
+                }
+            
+            # Format conversation for evaluation with clear speaker labels
             conversation_text = "\n".join([
-                f"{msg['role'].upper()}: {msg['content']}" 
+                f"{'STUDENT' if msg['role'] == 'user' else 'AI PROFESSOR'}: {msg['content']}" 
                 for msg in conversation_history
             ])
             

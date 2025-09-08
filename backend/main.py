@@ -30,11 +30,6 @@ class Turn(BaseModel):
     speaker: str
     text: str
 
-class SessionSubmission(BaseModel):
-    student_id: int
-    assignment_id: int
-    transcript: List[Turn]
-    duration_seconds: int
 
 # New AI conversation models
 class StartSessionRequest(BaseModel):
@@ -184,37 +179,6 @@ async def get_assignments(db: DBSession = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching assignments: {str(e)}")
 
-@app.post("/sessions")
-async def submit_session(submission: SessionSubmission, db: DBSession = Depends(get_db)):
-    """Submit a completed assessment session"""
-    try:
-        # For now, allow multiple attempts (no duplicate check)
-        
-        # Create new session
-        new_session = Session(
-            student_id=submission.student_id,
-            assignment_id=submission.assignment_id,
-            status="completed",
-            started_at=datetime.now(),
-            completed_at=datetime.now(),
-            full_transcript=[turn.dict() for turn in submission.transcript],
-            final_score=85,  # Mock score for now
-            score_category="green",  # Mock category
-            ai_feedback="Good analysis with clear examples. Consider exploring counterarguments more deeply."  # Mock feedback
-        )
-        
-        db.add(new_session)
-        db.commit()
-        db.refresh(new_session)
-        
-        return {
-            "session_id": new_session.id,
-            "score": new_session.final_score,
-            "score_category": new_session.score_category,
-            "feedback": new_session.ai_feedback
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error submitting session: {str(e)}")
 
 @app.delete("/sessions/{session_id}")
 async def delete_session(session_id: int, db: DBSession = Depends(get_db)):
