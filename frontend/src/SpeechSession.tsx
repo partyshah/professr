@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import springImage from './assets/spring_image.jpeg'
+import heatherPhoto from './assets/Heather James photo.png'
 
 interface SpeechSessionProps {
   studentId: number
@@ -462,8 +462,8 @@ function SpeechSession({
       }}>
         {/* Professor Avatar */}
         <img 
-          src={springImage} 
-          alt="Professor"
+          src={heatherPhoto} 
+          alt="Professor Heather James"
           style={{
             width: '140px',
             height: '120px',
