@@ -446,36 +446,14 @@ function SpeechSession({
             borderRadius: '70px 70px 60px 60px',
             objectFit: 'cover',
             position: 'relative',
-            zIndex: 2
+            zIndex: 2,
+            border: sessionState === 'ai_speaking' ? '3px solid #ff4444' : 
+                    sessionState === 'loading_response' ? '3px solid #2196F3' : 
+                    'none',
+            animation: (sessionState === 'ai_speaking' || sessionState === 'loading_response') ? 
+                      'pulse-border 1.5s ease-in-out infinite' : 'none'
           }}
         />
-
-        {/* Pulsing Animation for AI Speaking */}
-        {sessionState === 'ai_speaking' && (
-          <div style={{
-            position: 'absolute',
-            width: '140px',
-            height: '120px',
-            borderRadius: '70px 70px 60px 60px',
-            border: '3px solid #ff4444',
-            animation: 'pulse 1s infinite',
-            zIndex: 1
-          }} />
-        )}
-
-        {/* Loading Animation */}
-        {sessionState === 'loading_response' && (
-          <div style={{
-            position: 'absolute',
-            width: '150px',
-            height: '130px',
-            borderRadius: '75px 75px 65px 65px',
-            border: '3px solid #f3f3f3',
-            borderTop: '3px solid #2196F3',
-            animation: 'spin 1s linear infinite',
-            zIndex: 1
-          }} />
-        )}
 
         {/* Status Text */}
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
@@ -610,24 +588,16 @@ function SpeechSession({
       </div>
 
       <style>{`
-        @keyframes pulse {
+        @keyframes pulse-border {
           0% {
-            transform: scale(1);
-            opacity: 1;
+            opacity: 0.4;
           }
           50% {
-            transform: scale(1.1);
-            opacity: 0.7;
-          }
-          100% {
-            transform: scale(1);
             opacity: 1;
           }
-        }
-        
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          100% {
+            opacity: 0.4;
+          }
         }
         
         @keyframes bounce {
