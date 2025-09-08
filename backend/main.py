@@ -306,8 +306,7 @@ async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
             completed_at=datetime.now(),
             full_transcript=formatted_transcript,
             final_score=evaluation.get('score', 75),
-            score_category="green" if evaluation.get('score', 75) >= 85 else 
-                          "yellow" if evaluation.get('score', 75) >= 70 else "red",
+            score_category=evaluation.get('category', 'yellow'),
             ai_feedback=evaluation.get('feedback', 'No feedback available')
         )
         
