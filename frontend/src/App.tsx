@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import './App.css'
 import SpeechSession from './SpeechSession'
 import Results from './Results'
 import Instructor from './Instructor'
+import RoleSelection from './RoleSelection'
+import professrLogo from './assets/Professr Logo.png'
 
 interface Student {
   id: number
@@ -30,6 +32,7 @@ function StudentFlow() {
   const [sessionTranscript, setSessionTranscript] = useState<any[]>([])
   const [showCompletedModal, setShowCompletedModal] = useState(false)
   const [existingSessionData, setExistingSessionData] = useState<any>(null)
+  const [showDirectionsModal, setShowDirectionsModal] = useState(false)
   
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   
@@ -107,6 +110,12 @@ function StudentFlow() {
       return
     }
     
+    // Show directions modal first
+    setShowDirectionsModal(true)
+  }
+
+  const handleContinueToSession = () => {
+    setShowDirectionsModal(false)
     setCurrentView('session')
   }
 
@@ -157,88 +166,250 @@ function StudentFlow() {
   const assignment = assignments.find(a => a.id === parseInt(selectedAssignment))
 
   return (
-    <>
-      <h1>Oral Assessment Tool</h1>
-      
-      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <Link 
-          to="/instructor"
-          style={{ 
-            color: '#666', 
-            fontSize: '14px',
-            textDecoration: 'none'
-          }}
-        >
-          Instructor Access
-        </Link>
-      </div>
-      
-      {currentView === 'selection' && (
-        <div className="card">
-          <h2>Start Assessment</h2>
-          
-          <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="student-select" style={{ display: 'block', marginBottom: '5px' }}>
-              1. Select your name:
-            </label>
-            <select 
-              id="student-select"
-              value={selectedStudent} 
-              onChange={(e) => setSelectedStudent(e.target.value)}
-              style={{ width: '100%', padding: '8px', fontSize: '16px' }}
-            >
-              <option value="">-- Choose Student --</option>
-              {students.map(student => (
-                <option key={student.id} value={student.id}>
-                  {student.name}
-                </option>
-              ))}
-            </select>
-          </div>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: '#f5f5f5',
+      padding: '2rem'
+    }}>
+      {/* Main content area */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        flex: 1,
+        justifyContent: 'center'
+      }}>
+        {currentView === 'selection' && (
+          <div style={{
+            maxWidth: '800px',
+            width: '100%',
+            padding: '30px 60px 30px 60px',
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+          }}>
+            
+            <div style={{ marginBottom: '25px' }}>
+              <label htmlFor="student-select" style={{ 
+                display: 'block', 
+                marginBottom: '8px',
+                fontSize: '1.2rem',
+                fontWeight: '700',
+                color: '#333'
+              }}>
+                What is your name?
+              </label>
+              <select 
+                id="student-select"
+                value={selectedStudent} 
+                onChange={(e) => setSelectedStudent(e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  fontSize: '16px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  transition: 'border-color 0.3s ease',
+                  color: '#333'
+                }}
+                onFocus={(e) => (e.target as HTMLSelectElement).style.borderColor = '#333'}
+                onBlur={(e) => (e.target as HTMLSelectElement).style.borderColor = '#ddd'}
+              >
+                <option value="">Student</option>
+                {students.map(student => (
+                  <option key={student.id} value={student.id}>
+                    {student.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="assignment-select" style={{ display: 'block', marginBottom: '5px' }}>
-              2. Select assignment:
-            </label>
-            <select 
-              id="assignment-select"
-              value={selectedAssignment} 
-              onChange={(e) => setSelectedAssignment(e.target.value)}
-              style={{ width: '100%', padding: '8px', fontSize: '16px' }}
-              disabled={!selectedStudent}
-            >
-              <option value="">-- Choose Assignment --</option>
-              {assignments.map(assignment => (
-                <option key={assignment.id} value={assignment.id}>
-                  {assignment.title}
-                </option>
-              ))}
-            </select>
-            {selectedAssignment && (
-              <p style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-                {assignment?.description}
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="assignment-select" style={{ 
+                display: 'block', 
+                marginBottom: '8px',
+                fontSize: '1.2rem',
+                fontWeight: '700',
+                color: '#333'
+              }}>
+                Which readings are we discussing?
+              </label>
+              <select 
+                id="assignment-select"
+                value={selectedAssignment} 
+                onChange={(e) => setSelectedAssignment(e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  padding: '12px', 
+                  fontSize: '16px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  outline: 'none',
+                  transition: 'border-color 0.3s ease',
+                  color: '#333'
+                }}
+                disabled={!selectedStudent}
+                onFocus={(e) => (e.target as HTMLSelectElement).style.borderColor = '#333'}
+                onBlur={(e) => (e.target as HTMLSelectElement).style.borderColor = '#ddd'}
+              >
+                <option value="">Assignment</option>
+                {assignments.map(assignment => (
+                  <option key={assignment.id} value={assignment.id}>
+                    {assignment.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+              <button 
+                onClick={handleStartSession}
+                disabled={!isReady}
+                style={{
+                  width: '120px',
+                  padding: '12px 20px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  backgroundColor: isReady ? '#333' : '#ccc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '20px',
+                  cursor: isReady ? 'pointer' : 'not-allowed',
+                  transition: 'background-color 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  if (isReady) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#555'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (isReady) {
+                    (e.target as HTMLButtonElement).style.backgroundColor = '#333'
+                  }
+                }}
+              >
+                Enter
+              </button>
+            </div>
+            
+            {message && (
+              <p style={{ 
+                color: '#e74c3c', 
+                marginTop: '15px', 
+                textAlign: 'center',
+                fontSize: '14px'
+              }}>
+                {message}
               </p>
             )}
           </div>
+        )}
+      </div>
 
-          <button 
-            onClick={handleStartSession}
-            disabled={!isReady}
-            style={{
-              width: '100%',
-              padding: '12px',
-              fontSize: '18px',
-              backgroundColor: isReady ? '#4CAF50' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: isReady ? 'pointer' : 'not-allowed'
-            }}
-          >
-            Start Assessment
-          </button>
-          
-          {message && <p>{message}</p>}
+      {/* Professr Logo at bottom */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '1rem',
+        padding: '1rem'
+      }}>
+        <img 
+          src={professrLogo} 
+          alt="Professr Logo" 
+          style={{
+            height: '60px',
+            width: 'auto'
+          }}
+        />
+        <span style={{
+          fontSize: '2rem',
+          fontWeight: 'bold',
+          color: '#333'
+        }}>
+          Professr
+        </span>
+      </div>
+      
+      {/* Directions Modal */}
+      {showDirectionsModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '40px',
+            borderRadius: '16px',
+            maxWidth: '500px',
+            width: '90%',
+            textAlign: 'left',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              color: '#333',
+              marginBottom: '20px',
+              textAlign: 'center'
+            }}>
+              Directions (actually read this...)
+            </h2>
+            
+            <ul style={{
+              fontSize: '1rem',
+              color: '#333',
+              lineHeight: '1.6',
+              marginBottom: '30px',
+              paddingLeft: '20px'
+            }}>
+              <li style={{ marginBottom: '12px' }}>
+                You will be discussing this week's readings as if you're having a normal conversation with your professor.
+              </li>
+              <li style={{ marginBottom: '12px' }}>
+                At the end, you'll receive feedback on whether your ideas reflected the key ideas from the readings.
+              </li>
+              <li style={{ marginBottom: '12px' }}>
+                To get the most out of this, don't just give 1 sentence answers! Justify your ideas in the context of the readings.
+              </li>
+              <li style={{ marginBottom: '12px' }}>
+                The conversation will last 10 minutes.
+              </li>
+            </ul>
+            
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button
+                onClick={handleContinueToSession}
+                style={{
+                  padding: '12px 30px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  backgroundColor: '#333',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.3s ease'
+                }}
+                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
+                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
+              >
+                Continue
+              </button>
+            </div>
+          </div>
         </div>
       )}
       
@@ -318,14 +489,16 @@ function StudentFlow() {
           onBack={handleBackToHome}
         />
       )}
-    </>
+    </div>
   )
 }
 
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<StudentFlow />} />
+      <Route path="/" element={<RoleSelection />} />
+      <Route path="/student" element={<StudentFlow />} />
+      <Route path="/professor" element={<Instructor />} />
       <Route path="/instructor" element={<Instructor />} />
     </Routes>
   )
