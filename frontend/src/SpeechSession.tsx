@@ -34,6 +34,7 @@ function SpeechSession({
   const [, setWaitingForPlay] = useState(false)
   const [aiSessionId, setAiSessionId] = useState<string | null>(null)
   const [sessionInitialized, setSessionInitialized] = useState(false)
+  const [isAutoEndResponse, setIsAutoEndResponse] = useState(false)
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
@@ -129,6 +130,10 @@ function SpeechSession({
         
         const aiData = await aiResponse.json()
         const aiText = aiData.response
+        const shouldAutoEnd = aiData.auto_end === true
+        
+        // Track if this is an auto-end response
+        setIsAutoEndResponse(shouldAutoEnd)
         
         // Add AI response to transcript
         const finalTranscript = [...newTranscript, { speaker: 'ai' as const, text: aiText }]
@@ -159,8 +164,14 @@ function SpeechSession({
         setSessionState('ai_speaking')
         
         audio.onended = () => {
-          // Auto-start recording when AI finishes speaking
-          startRecording()
+          if (shouldAutoEnd) {
+            // AI said farewell - automatically end session
+            console.log('Auto-ending session after farewell message')
+            handleComplete()
+          } else {
+            // Normal flow: Auto-start recording when AI finishes speaking
+            startRecording()
+          }
           URL.revokeObjectURL(newAudioUrl)
         }
         
@@ -170,6 +181,7 @@ function SpeechSession({
           console.error('Auto-play failed:', error)
           // Fallback: set up for manual play
           setAudioUrl(newAudioUrl)
+          // Note: isAutoEndResponse state is already set, so manual play will handle auto-end correctly
         }
         
       } catch (error) {
@@ -201,7 +213,14 @@ function SpeechSession({
     
     audio.onended = () => {
       console.log('Audio playback ended')
-      startRecording()
+      if (isAutoEndResponse) {
+        // AI said farewell - automatically end session
+        console.log('Auto-ending session after manual play of farewell message')
+        handleComplete()
+      } else {
+        // Normal flow: Auto-start recording when AI finishes speaking
+        startRecording()
+      }
       setWaitingForPlay(false)
       URL.revokeObjectURL(audioUrl)
       setAudioUrl('')

@@ -77,18 +77,45 @@ class AITutorService:
         pdf_context = session_data['pdf_context']
         conversation_history = session_data['conversation_history']
         
-        # Calculate elapsed time
+        # Calculate elapsed time and remaining time
         start_time = session_data.get('start_time', datetime.now())
         elapsed_seconds = int((datetime.now() - start_time).total_seconds())
+        remaining_seconds = max(0, 600 - elapsed_seconds)  # 10-minute session
+        
+        # Check for auto-end condition (≤20 seconds remaining)
+        if remaining_seconds <= 20:
+            logger.info(f"Auto-ending session {session_id} with {remaining_seconds} seconds remaining")
+            
+            # Add farewell message to conversation history
+            farewell_message = "Thank you for a good conversation. Let's wrap up here."
+            conversation_history.append({"role": "user", "content": user_message})
+            conversation_history.append({"role": "assistant", "content": farewell_message})
+            
+            metadata = {
+                'question_count': conv_manager.question_count,
+                'phase': 'wrap_up',
+                'should_wrap_up': True,
+                'auto_end': True,
+                'elapsed_seconds': elapsed_seconds,
+                'minutes_elapsed': round(elapsed_seconds / 60.0, 1),
+                'remaining_seconds': remaining_seconds,
+                'token_usage': {'input_tokens': 0, 'output_tokens': 0, 'total_tokens': 0}
+            }
+            
+            return farewell_message, metadata
         
         try:
+            # Check if this should be the final question
+            final_question = remaining_seconds <= 45
+            
             # Format messages for API with time context
             messages = conv_manager.format_for_api(
                 system_prompt=TUTOR_SYSTEM_PROMPT,
                 pdf_context=pdf_context,
                 conversation_history=conversation_history,
                 new_message=user_message,
-                elapsed_seconds=elapsed_seconds
+                elapsed_seconds=elapsed_seconds,
+                final_question=final_question
             )
             
             # Call OpenAI API with GPT-4o-mini for cost efficiency
@@ -117,16 +144,20 @@ class AITutorService:
                                  response.usage.completion_tokens * 0.0006) / 1000
             }
             
-            # Check if conversation should wrap up based on time
+            # Check timing thresholds
             minutes_elapsed = elapsed_seconds / 60.0
             should_wrap_up = minutes_elapsed >= 9.5  # Wrap up in final 30 seconds
+            final_question = remaining_seconds <= 45  # One more question only
             
             metadata = {
                 'question_count': conv_manager.question_count,
                 'phase': conv_manager.phase,
                 'should_wrap_up': should_wrap_up,
+                'final_question': final_question,
+                'auto_end': False,
                 'elapsed_seconds': elapsed_seconds,
                 'minutes_elapsed': round(minutes_elapsed, 1),
+                'remaining_seconds': remaining_seconds,
                 'token_usage': token_usage
             }
             

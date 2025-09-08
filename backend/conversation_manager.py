@@ -102,7 +102,7 @@ class ConversationManager:
     
     def format_for_api(self, system_prompt: str, pdf_context: str, 
                        conversation_history: List[Dict], new_message: str,
-                       elapsed_seconds: int = 0) -> List[Dict]:
+                       elapsed_seconds: int = 0, final_question: bool = False) -> List[Dict]:
         """Format the complete message list for OpenAI API"""
         
         minutes_elapsed = elapsed_seconds / 60.0
@@ -114,6 +114,10 @@ class ConversationManager:
         time_context += f"- Time remaining: {remaining_minutes:.1f} minutes\n"
         time_context += f"- Current phase: {self.phase}\n"
         time_context += f"- Questions asked so far: {self.question_count}\n"
+        
+        # Special timing guidance
+        if final_question:
+            time_context += "\n⚠️ FINAL QUESTION: Less than 45 seconds remaining. Ask ONE more meaningful question only."
         
         # Phase-specific guidance
         if self.phase == "opening":
