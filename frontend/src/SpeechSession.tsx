@@ -549,7 +549,7 @@ function SpeechSession({
 
       {/* Control Buttons */}
       <div style={{ display: 'flex', gap: '10px', marginTop: '30px', justifyContent: 'center' }}>
-        {!transcript.length ? (
+        {sessionState === 'not_started' ? (
           <button
             onClick={handleStartSession}
             style={{
