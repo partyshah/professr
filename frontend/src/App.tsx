@@ -201,11 +201,13 @@ function StudentFlow() {
                 onBlur={(e) => (e.target as HTMLSelectElement).style.borderColor = '#ddd'}
               >
                 <option value="">Student</option>
-                {students.map(student => (
-                  <option key={student.id} value={student.id}>
-                    {student.name}
-                  </option>
-                ))}
+                {students
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(student => (
+                    <option key={student.id} value={student.id}>
+                      {student.name}
+                    </option>
+                  ))}
               </select>
             </div>
 
