@@ -67,20 +67,14 @@ class ConversationManager:
         """Create a summary of conversation messages"""
         # Group messages into Q&A pairs and extract themes discussed
         topics_covered = []
-        ai_phrases_used = set()
-        
+
         for i, msg in enumerate(messages):
             if msg['role'] == 'assistant':
-                # Track key phrases the AI has already used to avoid repetition
-                content = msg.get('content', '').lower()
-                if 'highest good' in content:
-                    ai_phrases_used.add('highest good and happiness')
-                if 'political animal' in content:
-                    ai_phrases_used.add('political animals concept')
-                if 'city-state' in content:
-                    ai_phrases_used.add('city-state definition')
-                
-                # Extract topics discussed
+                # Dynamically track actual concepts from the conversation
+                # Instead of looking for specific philosophers, extract what was actually discussed
+                content = msg.get('content', '')
+
+                # Extract topics discussed based on actual conversation
                 if i > 0 and messages[i-1]['role'] == 'user':
                     user_response = messages[i-1]['content'][:80]
                     ai_question = msg['content'][:80]
@@ -90,14 +84,12 @@ class ConversationManager:
         summary_parts = []
         if topics_covered:
             summary_parts.append("Topics already covered: " + "; ".join(topics_covered[-3:]))
-        if ai_phrases_used:
-            summary_parts.append("Key concepts already explained: " + ", ".join(list(ai_phrases_used)))
-        
+
         summary_text = "\n".join(summary_parts) if summary_parts else "Early conversation about the readings"
-        
+
         return {
             "role": "system",
-            "content": f"[SUMMARY OF EARLIER CONVERSATION]\n{summary_text}\nAvoid repeating these exact phrases or concepts. Build on what was already discussed.\n[END SUMMARY]"
+            "content": f"[SUMMARY OF EARLIER CONVERSATION]\n{summary_text}\nBuild on what was already discussed without repeating the same questions.\n[END SUMMARY]"
         }
     
     def format_for_api(self, system_prompt: str, pdf_context: str, 
