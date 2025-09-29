@@ -587,7 +587,7 @@ function SpeechSession({
                 onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
                 onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
               >
-                Submit Response
+                Next Question
               </button>
             )}
           </>
