@@ -10,12 +10,52 @@ from prompts import TUTOR_SYSTEM_PROMPT, EVALUATION_SYSTEM_PROMPT
 logger = logging.getLogger(__name__)
 
 class AITutorService:
-    """Service for managing AI tutoring sessions"""
-    
+    """Service for managing AI tutoring sessions
+
+    IMPORTANT: Sessions are stored in memory. For production with multiple workers,
+    consider using Redis or database storage to share sessions across workers.
+    Currently requires single worker mode (--workers 1) to maintain session state.
+    """
+
     def __init__(self):
         self.client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.sessions = {}  # Store conversation managers by session_id
+        self.sessions = {}  # Store conversation managers by session_id (in-memory)
         
+    def initialize_session_with_text(self, session_id: str, reading_text: str) -> Dict:
+        """Initialize a new tutoring session with direct text content (faster than PDF extraction)"""
+        try:
+            from datetime import datetime
+
+            # Create conversation manager for this session
+            conv_manager = ConversationManager()
+
+            # Use the reading text directly (no PDF extraction needed)
+            pdf_context = f"=== Reading Material ===\n{reading_text}"
+
+            # Store session data with start time
+            self.sessions[session_id] = {
+                'manager': conv_manager,
+                'pdf_context': pdf_context,
+                'conversation_history': [],
+                'pdf_paths': [],  # No PDF paths since we're using text
+                'start_time': datetime.now(),
+                'reading_text': reading_text  # Store the original text
+            }
+
+            logger.info(f"Initialized session {session_id} with reading text ({len(reading_text)} chars)")
+            return {
+                'success': True,
+                'message': 'Session initialized with text',
+                'text_length': len(reading_text)
+            }
+
+        except Exception as e:
+            logger.error(f"Error initializing session {session_id} with text: {str(e)}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
     def initialize_session(self, session_id: str, pdf_paths: List[str]) -> Dict:
         """Initialize a new tutoring session with PDF context"""
         try:
@@ -169,14 +209,55 @@ class AITutorService:
             logger.error(f"Error getting AI response for session {session_id}: {str(e)}")
             return f"I apologize, but I encountered an error. Let's continue: {str(e)}", {'error': str(e)}
     
-    def evaluate_session(self, session_id: str) -> Dict:
+    def evaluate_session(self, session_id: str, db_session=None) -> Dict:
         """Evaluate the complete session performance"""
-        
-        if session_id not in self.sessions:
+
+        conversation_history = None
+        question_count = 0
+
+        # First try to get from memory
+        if session_id in self.sessions:
+            logger.info(f"Evaluating session {session_id} from memory")
+            session_data = self.sessions[session_id]
+            conversation_history = session_data['conversation_history']
+            question_count = session_data['manager'].question_count
+        # Otherwise try to recover from database if available
+        elif db_session:
+            try:
+                # Import here to avoid circular dependency
+                from models import Session
+
+                # Try to find existing session in database
+                parts = session_id.split('_')
+                if len(parts) >= 3:
+                    student_id = int(parts[1])
+                    assignment_id = int(parts[2])
+
+                    existing_session = db_session.query(Session).filter(
+                        Session.student_id == student_id,
+                        Session.assignment_id == assignment_id
+                    ).first()
+
+                    if existing_session and existing_session.full_transcript:
+                        # Convert database transcript format to conversation_history format
+                        conversation_history = []
+                        for turn in existing_session.full_transcript:
+                            if turn['speaker'] == 'student':
+                                conversation_history.append({'role': 'user', 'content': turn['text']})
+                            elif turn['speaker'] == 'ai':
+                                conversation_history.append({'role': 'assistant', 'content': turn['text']})
+
+                        # Count AI questions
+                        question_count = len([msg for msg in conversation_history if msg['role'] == 'assistant'])
+                        logger.info(f"Successfully recovered session {session_id} from database (found {len(conversation_history)} messages)")
+            except Exception as e:
+                logger.error(f"Error recovering session from database: {str(e)}")
+
+        if not conversation_history:
+            logger.error(f"Session {session_id} not found in memory or database")
             return {'error': 'Session not found'}
-        
-        session_data = self.sessions[session_id]
-        conversation_history = session_data['conversation_history']
+
+        # Remove reference to session_data that might not exist
         
         try:
             # Check student participation levels before evaluation
@@ -190,7 +271,7 @@ class AITutorService:
                     'score': 40,
                     'category': 'red',
                     'feedback': 'Explain and Apply Institutions & Principles: [Red] - Student did not provide sufficient responses to demonstrate understanding of institutional concepts.\n\nInterpret and Compare Theories & Justifications: [Red] - Minimal student participation prevented assessment of theoretical analysis skills.\n\nEvaluate Effectiveness & Fairness: [Red] - Student did not engage enough to show critical evaluation abilities.\n\nPropose and Justify Reforms: [Red] - No meaningful reform proposals were offered by the student.\n\nOverall: [Red] - Session ended with insufficient student participation to assess learning objectives.',
-                    'question_count': session_data['manager'].question_count
+                    'question_count': question_count
                 }
             
             # Format conversation for evaluation with clear speaker labels
@@ -218,29 +299,49 @@ class AITutorService:
             green_count = evaluation_lower.count('green')
             yellow_count = evaluation_lower.count('yellow')
             red_count = evaluation_lower.count('red')
-            
-            # Determine category based on color distribution
-            if green_count >= 3:  # Mostly green
+
+            # Log color counts for debugging
+            logger.info(f"Session {session_id} evaluation colors - Green: {green_count}, Yellow: {yellow_count}, Red: {red_count}")
+
+            # Apply 50% majority rule (2 or more out of 4 categories = majority)
+            if green_count >= 2:  # 50% or more green (2+ out of 4)
                 category = "green"
-                score = 90
-            elif green_count >= 2 and yellow_count <= 2:  # More green than yellow/red
-                category = "green"
-                score = 85
-            elif yellow_count >= 2 and red_count <= 1:  # Mostly yellow with little red
+                score = 90 if green_count >= 3 else 85  # Higher score for 3-4 greens
+            elif yellow_count >= 2:  # 50% or more yellow (2+ out of 4)
                 category = "yellow"
                 score = 75
-            elif red_count >= 2:  # Multiple reds
+            elif red_count >= 2:  # 50% or more red (2+ out of 4)
                 category = "red"
                 score = 60
-            else:  # Mixed results, lean toward yellow
+            else:  # No majority (mixed 1-1-1-1 type results), default to yellow
                 category = "yellow"
                 score = 70
+
+            # Validate: Check if the AI's "Overall:" line matches our calculation
+            overall_line_match = None
+            for line in evaluation.split('\n'):
+                if line.strip().lower().startswith('overall:'):
+                    if 'green' in line.lower():
+                        overall_line_match = 'green'
+                    elif 'yellow' in line.lower():
+                        overall_line_match = 'yellow'
+                    elif 'red' in line.lower():
+                        overall_line_match = 'red'
+                    break
+
+            # Log validation results
+            if overall_line_match and overall_line_match != category:
+                logger.warning(f"Session {session_id}: Color mismatch! AI said Overall: {overall_line_match}, but our calculation: {category}")
+            else:
+                logger.info(f"Session {session_id}: Color validation passed - {category}")
+
+            # Use our calculated category (don't trust the AI's "Overall" line)
             
             return {
                 'score': score,
                 'category': category,
                 'feedback': evaluation,
-                'question_count': session_data['manager'].question_count
+                'question_count': question_count
             }
             
         except Exception as e:
@@ -260,7 +361,8 @@ class AITutorService:
             'question_count': conv_manager.question_count,
             'phase': conv_manager.phase,
             'message_count': len(session_data['conversation_history']),
-            'pdf_count': len(session_data['pdf_paths'])
+            'pdf_count': len(session_data.get('pdf_paths', [])),
+            'using_text': 'reading_text' in session_data
         }
     
     def get_formatted_transcript(self, session_id: str) -> List[Dict]:
@@ -291,5 +393,9 @@ class AITutorService:
     def cleanup_session(self, session_id: str):
         """Clean up session data to free memory"""
         if session_id in self.sessions:
+            session_data = self.sessions[session_id]
+            message_count = len(session_data.get('conversation_history', []))
             del self.sessions[session_id]
-            logger.info(f"Cleaned up session {session_id}")
+            logger.info(f"Cleaned up session {session_id} from memory (had {message_count} messages)")
+        else:
+            logger.warning(f"Attempted to cleanup non-existent session {session_id}")

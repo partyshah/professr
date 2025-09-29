@@ -19,6 +19,7 @@ class Assignment(Base):
     week_number = Column(Integer, nullable=True)  # Week 1, 2, 3, etc.
     pdf_paths = Column(JSON, nullable=True)  # List of assignment PDF paths, e.g., ["week1/assignment.pdf", "week1/rubric.pdf"]
     solution_pdf_paths = Column(JSON, nullable=True)  # List of solution PDF paths, e.g., ["week1/solution.pdf"]
+    reading_text = Column(Text, nullable=True)  # Store reading text directly instead of extracting from PDFs
     
     def __repr__(self):
         return f"<Assignment(id={self.id}, title='{self.title}')>"

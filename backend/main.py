@@ -172,7 +172,8 @@ async def get_assignments(db: DBSession = Depends(get_db)):
                 "description": a.description,
                 "week_number": a.week_number,
                 "pdf_urls": [f"/static/assignments/{path}" for path in a.pdf_paths] if a.pdf_paths else [],
-                "solution_pdf_urls": [f"/static/assignments/{path}" for path in a.solution_pdf_paths] if a.solution_pdf_paths else []
+                "solution_pdf_urls": [f"/static/assignments/{path}" for path in a.solution_pdf_paths] if a.solution_pdf_paths else [],
+                "has_reading_text": bool(a.reading_text)
             } 
             for a in assignments
         ]}
@@ -223,19 +224,21 @@ async def speech_to_text(audio_file: UploadFile = File(...)):
 async def start_ai_session(request: StartSessionRequest, db: DBSession = Depends(get_db)):
     """Start a new AI tutoring session with PDF context"""
     try:
-        # Get assignment and its PDFs
+        # Get assignment and its PDFs or reading text
         assignment = db.query(Assignment).filter(Assignment.id == request.assignment_id).first()
         if not assignment:
             raise HTTPException(status_code=404, detail="Assignment not found")
-        
-        if not assignment.pdf_paths:
-            raise HTTPException(status_code=400, detail="Assignment has no PDFs")
-        
+
         # Create session ID
         session_id = f"session_{request.student_id}_{request.assignment_id}_{int(datetime.now().timestamp())}"
-        
-        # Initialize AI service with PDFs
-        result = ai_service.initialize_session(session_id, assignment.pdf_paths)
+
+        # Initialize AI service with reading text if available, otherwise use PDFs
+        if assignment.reading_text:
+            result = ai_service.initialize_session_with_text(session_id, assignment.reading_text)
+        elif assignment.pdf_paths:
+            result = ai_service.initialize_session(session_id, assignment.pdf_paths)
+        else:
+            raise HTTPException(status_code=400, detail="Assignment has no reading material")
         
         if not result['success']:
             raise HTTPException(status_code=500, detail=result['error'])
@@ -243,7 +246,9 @@ async def start_ai_session(request: StartSessionRequest, db: DBSession = Depends
         return {
             "session_id": session_id,
             "assignment_title": assignment.title,
-            "pdf_count": result['pdf_count'],
+            "pdf_count": result.get('pdf_count', 0),
+            "text_length": result.get('text_length', 0),
+            "using_text": bool(assignment.reading_text),
             "message": "Session started. How would you like to begin discussing today's readings?"
         }
         
@@ -276,9 +281,13 @@ async def ai_chat(request: ChatMessageRequest):
 @app.post("/evaluate-ai-session")
 async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
     """Evaluate a completed AI session and save to database"""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Starting evaluation for session {session_id}")
+
     try:
-        # Get evaluation from AI service
-        evaluation = ai_service.evaluate_session(session_id)
+        # Get evaluation from AI service (pass db session for recovery)
+        evaluation = ai_service.evaluate_session(session_id, db)
         
         if 'error' in evaluation:
             raise HTTPException(status_code=400, detail=evaluation['error'])
@@ -313,9 +322,10 @@ async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
         db.add(new_session)
         db.commit()
         db.refresh(new_session)
-        
-        # Clean up AI session
-        ai_service.cleanup_session(session_id)
+
+        # Don't clean up AI session immediately - keep it for potential re-evaluation
+        # ai_service.cleanup_session(session_id)
+        logger.info(f"Session {session_id} evaluation complete - keeping in memory for potential re-access")
         
         return {
             "session_id": new_session.id,
@@ -326,6 +336,7 @@ async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
         }
         
     except Exception as e:
+        logger.error(f"Error evaluating session {session_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error evaluating session: {str(e)}")
 
 @app.post("/ai-response")

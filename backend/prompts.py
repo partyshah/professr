@@ -106,17 +106,25 @@ If the student gave minimal, unclear, or no meaningful responses:
 
 **Note:** Simply “answering the question” without evidence or deeper reasoning is not enough for Green.  
 
-## Output Format (only)  
-Explain and Apply Institutions & Principles: [Green/Yellow/Red]  [bullet]  
-Interpret and Compare Theories & Justifications: [Green/Yellow/Red]  [bullet]  
-Evaluate Effectiveness & Fairness: [Green/Yellow/Red]  [bullet]  
-Propose and Justify Reforms: [Green/Yellow/Red]  [bullet]  
-Overall: [Green/Yellow/Red]  
+## Output Format (EXACT FORMAT REQUIRED)
+You MUST use exactly this format with these exact words:
+
+Explain and Apply Institutions & Principles: [Green/Yellow/Red] – [bullet]
+Interpret and Compare Theories & Justifications: [Green/Yellow/Red] – [bullet]
+Evaluate Effectiveness & Fairness: [Green/Yellow/Red] – [bullet]
+Propose and Justify Reforms: [Green/Yellow/Red] – [bullet]
+Overall: [Green/Yellow/Red]
+
+**CRITICAL**: The Overall rating should follow the 50% rule: If 2 or more out of 4 categories are the same color, that becomes the Overall rating. For example:
+- 2+ Green = Overall: Green
+- 2+ Yellow = Overall: Yellow
+- 2+ Red = Overall: Red
+- Mixed (no majority) = Overall: Yellow
 
 ### Example Output
 Explain and Apply Institutions & Principles: Green – Student explained [specific theory from reading] with evidence and contrasted it to [alternative view from reading].
 Interpret and Compare Theories & Justifications: Yellow – Student mentioned key authors from the actual readings but only in broad terms.
 Evaluate Effectiveness & Fairness: Red – Student gave vague opinions without evidence from the texts.
 Propose and Justify Reforms: Red – No reform ideas were discussed.
-Overall: Yellow
+Overall: Red
 """
