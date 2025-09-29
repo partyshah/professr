@@ -28,7 +28,7 @@ function SpeechSession({
   const [sessionState, setSessionState] = useState<SessionState>('not_started')
   const [transcript, setTranscript] = useState<Turn[]>([])
   const [isRecording, setIsRecording] = useState(false)
-  const [, setCurrentAiResponse] = useState('')
+  const [currentAiResponse, setCurrentAiResponse] = useState('')
   const [audioUrl, setAudioUrl] = useState<string>('')
   const [, setWaitingForPlay] = useState(false)
   const [aiSessionId, setAiSessionId] = useState<string | null>(null)
@@ -73,7 +73,9 @@ function SpeechSession({
 
   const submitRecording = useCallback(async () => {
     if (!mediaRecorderRef.current || !isRecording) return
-    
+
+    // Clear the previous AI response text when submitting new response
+    setCurrentAiResponse('')
     setSessionState('processing')
     
     mediaRecorderRef.current.stop()
@@ -171,6 +173,7 @@ function SpeechSession({
             // Normal flow: Auto-start recording when AI finishes speaking
             startRecording()
           }
+          // Don't clear AI response text when audio ends - keep it until next question
           URL.revokeObjectURL(newAudioUrl)
         }
         
@@ -220,6 +223,7 @@ function SpeechSession({
         // Normal flow: Auto-start recording when AI finishes speaking
         startRecording()
       }
+      // Don't clear AI response text when audio ends - keep it until next question
       setWaitingForPlay(false)
       URL.revokeObjectURL(audioUrl)
       setAudioUrl('')
@@ -313,6 +317,7 @@ function SpeechSession({
       audio.onended = () => {
         // Auto-start recording when AI finishes speaking
         startRecording()
+        // Don't clear AI response text when audio ends - keep it until next question
         URL.revokeObjectURL(newAudioUrl)
       }
       
@@ -454,68 +459,113 @@ function SpeechSession({
       <div style={{
         height: '200px',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
         margin: '30px 0',
-        position: 'relative'
+        position: 'relative',
+        gap: '40px'
       }}>
-        {/* Professor Avatar */}
-        <img 
-          src={heatherPhoto} 
-          alt="Professor Heather James"
-          style={{
-            width: '140px',
-            height: '120px',
-            borderRadius: '70px 70px 60px 60px',
-            objectFit: 'cover',
-            position: 'relative',
-            zIndex: 2,
-            border: sessionState === 'ai_speaking' ? '3px solid #ff4444' : 
-                    sessionState === 'loading_response' ? '3px solid #2196F3' : 
-                    'none',
-            animation: (sessionState === 'ai_speaking' || sessionState === 'loading_response') ? 
-                      'pulse-border 1.5s ease-in-out infinite' : 'none'
-          }}
-        />
+        {/* Professor Avatar Container */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img
+            src={heatherPhoto}
+            alt="Professor Heather James"
+            style={{
+              width: '140px',
+              height: '120px',
+              borderRadius: '70px 70px 60px 60px',
+              objectFit: 'cover',
+              position: 'relative',
+              zIndex: 2,
+              border: sessionState === 'ai_speaking' ? '3px solid #ff4444' :
+                      sessionState === 'loading_response' ? '3px solid #2196F3' :
+                      'none',
+              animation: (sessionState === 'ai_speaking' || sessionState === 'loading_response') ?
+                        'pulse-border 1.5s ease-in-out infinite' : 'none'
+            }}
+          />
 
-        {/* Status Text */}
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          {sessionState === 'ai_speaking' && audioUrl && (
-            <>
-              <p style={{ color: '#ff4444', fontWeight: 'bold' }}>AI Professor is ready to speak</p>
-              <button
-                onClick={playAiResponse}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#ff4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  marginTop: '10px'
-                }}
-              >
-                🔊 Play Response
-              </button>
-            </>
-          )}
-          {sessionState === 'ai_speaking' && !audioUrl && (
-            <p style={{ color: '#000', fontWeight: 'bold' }}>AI Professor is speaking...</p>
-          )}
-          {sessionState === 'student_recording' && !isRecording && (
-            <p style={{ color: '#4CAF50' }}>Starting recording for your response...</p>
-          )}
-          {sessionState === 'student_recording' && isRecording && (
-            <p style={{ color: '#000', fontWeight: 'bold' }}>Recording your turn...</p>
-          )}
-          {sessionState === 'processing' && (
-            <p style={{ color: '#ff9800' }}>Processing your response...</p>
-          )}
-          {sessionState === 'loading_response' && (
-            <p style={{ color: '#2196F3' }}>AI response loading...</p>
-          )}
+          {/* Status Text */}
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            {sessionState === 'ai_speaking' && audioUrl && (
+              <>
+                <p style={{ color: '#ff4444', fontWeight: 'bold' }}>AI Professor is ready to speak</p>
+                <button
+                  onClick={playAiResponse}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#ff4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    marginTop: '10px'
+                  }}
+                >
+                  🔊 Play Response
+                </button>
+              </>
+            )}
+            {sessionState === 'ai_speaking' && !audioUrl && (
+              <p style={{ color: '#000', fontWeight: 'bold' }}>AI Professor is speaking...</p>
+            )}
+            {sessionState === 'student_recording' && !isRecording && (
+              <p style={{ color: '#4CAF50' }}>Starting recording for your response...</p>
+            )}
+            {sessionState === 'student_recording' && isRecording && (
+              <p style={{ color: '#000', fontWeight: 'bold' }}>Recording your turn...</p>
+            )}
+            {sessionState === 'processing' && (
+              <p style={{ color: '#ff9800' }}>Processing your response...</p>
+            )}
+            {sessionState === 'loading_response' && (
+              <p style={{ color: '#2196F3' }}>AI response loading...</p>
+            )}
+          </div>
         </div>
+
+        {/* AI Speech Bubble - Show when we have AI text (until next question is pressed) */}
+        {currentAiResponse && (
+          <div style={{
+            maxWidth: '300px',
+            backgroundColor: '#f5f5f5',
+            border: '2px solid #ff4444',
+            borderRadius: '15px',
+            padding: '15px',
+            position: 'relative',
+            fontSize: '14px',
+            lineHeight: '1.4',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          }}>
+            {/* Speech bubble tail pointing to professor */}
+            <div style={{
+              position: 'absolute',
+              left: '-10px',
+              top: '20px',
+              width: '0',
+              height: '0',
+              borderTop: '10px solid transparent',
+              borderBottom: '10px solid transparent',
+              borderRight: '10px solid #ff4444'
+            }} />
+            <div style={{
+              position: 'absolute',
+              left: '-8px',
+              top: '21px',
+              width: '0',
+              height: '0',
+              borderTop: '9px solid transparent',
+              borderBottom: '9px solid transparent',
+              borderRight: '9px solid #f5f5f5'
+            }} />
+
+            {/* AI Response Text */}
+            <div style={{ color: '#333', fontWeight: '500' }}>
+              {currentAiResponse}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Waveform Visualization (Placeholder) */}
