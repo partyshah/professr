@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, useParams, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, useParams, Navigate } from 'react-router-dom'
 import './App.css'
 import SpeechSession from './SpeechSession'
 import Results from './Results'
@@ -54,7 +54,6 @@ type AppView = 'selection' | 'session' | 'results'
 
 // Create a separate component for the student flow
 function StudentFlow() {
-  const { classId } = useParams<{ classId: string }>()
   const [currentView, setCurrentView] = useState<AppView>('selection')
   const [students, setStudents] = useState<Student[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])

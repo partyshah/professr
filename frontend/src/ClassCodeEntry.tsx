@@ -2,13 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import professrLogo from './assets/Professr Logo.png'
 
-interface ClassInfo {
-  id: number
-  class_name: string
-  professor_name: string
-  access_code: string
-}
-
 function ClassCodeEntry() {
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
