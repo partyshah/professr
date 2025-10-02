@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
 import professrLogo from './assets/Professr Logo.png'
 
 function ClassCodeEntry() {
@@ -49,135 +52,52 @@ function ClassCodeEntry() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      width: '100vw',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: '#f5f5f5',
-      padding: '2rem',
-      margin: 0,
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      boxSizing: 'border-box'
-    }}>
+    <div className="min-h-screen w-screen flex flex-col items-center justify-between bg-background p-8 fixed top-0 left-0 box-border">
       {/* Main content area */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        flex: 1,
-        justifyContent: 'center'
-      }}>
-        <h1 style={{
-          marginBottom: '40px',
-          fontSize: '2rem',
-          fontWeight: '600',
-          color: '#333',
-          textAlign: 'center'
-        }}>
+      <div className="flex flex-col items-center flex-1 justify-center">
+        <h1 className="mb-10 text-3xl font-semibold text-foreground text-center">
           Enter your class code
         </h1>
 
-        <form onSubmit={handleSubmit} style={{
-          maxWidth: '400px',
-          width: '100%',
-          padding: '40px',
-          backgroundColor: 'white',
-          borderRadius: '16px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-        }}>
-          <input
-            type="text"
-            value={code}
-            onChange={handleCodeChange}
-            placeholder="6-digit code"
-            maxLength={6}
-            autoFocus
-            style={{
-              width: '100%',
-              padding: '16px',
-              fontSize: '1.5rem',
-              fontWeight: '600',
-              textAlign: 'center',
-              letterSpacing: '0.5rem',
-              border: '2px solid #ddd',
-              borderRadius: '8px',
-              outline: 'none',
-              transition: 'border-color 0.3s ease',
-              fontFamily: 'monospace',
-              textTransform: 'uppercase'
-            }}
-            onFocus={(e) => (e.target as HTMLInputElement).style.borderColor = '#333'}
-            onBlur={(e) => (e.target as HTMLInputElement).style.borderColor = '#ddd'}
-          />
+        <Card className="max-w-md w-full">
+          <CardContent className="p-10">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                type="text"
+                value={code}
+                onChange={handleCodeChange}
+                placeholder="6-digit code"
+                maxLength={6}
+                autoFocus
+                className="w-full p-4 text-2xl font-semibold text-center tracking-[0.5rem] font-mono uppercase"
+              />
 
-          {error && (
-            <p style={{
-              color: '#e74c3c',
-              marginTop: '15px',
-              textAlign: 'center',
-              fontSize: '14px'
-            }}>
-              {error}
-            </p>
-          )}
+              {error && (
+                <p className="text-destructive text-center text-sm mt-4">
+                  {error}
+                </p>
+              )}
 
-          <button
-            type="submit"
-            disabled={code.length !== 6 || isLoading}
-            style={{
-              width: '100%',
-              marginTop: '20px',
-              padding: '14px',
-              fontSize: '16px',
-              fontWeight: '600',
-              backgroundColor: code.length === 6 && !isLoading ? '#333' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: code.length === 6 && !isLoading ? 'pointer' : 'not-allowed',
-              transition: 'background-color 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              if (code.length === 6 && !isLoading) {
-                (e.target as HTMLButtonElement).style.backgroundColor = '#555'
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (code.length === 6 && !isLoading) {
-                (e.target as HTMLButtonElement).style.backgroundColor = '#333'
-              }
-            }}
-          >
-            {isLoading ? 'Verifying...' : 'Enter'}
-          </button>
-        </form>
+              <Button
+                type="submit"
+                disabled={code.length !== 6 || isLoading}
+                className="w-full mt-5 py-3.5 text-base font-semibold rounded-[20px]"
+              >
+                {isLoading ? 'Verifying...' : 'Enter'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Professr Logo at bottom */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-        padding: '1rem'
-      }}>
+      <div className="flex items-center gap-4 p-4">
         <img
           src={professrLogo}
           alt="Professr Logo"
-          style={{
-            height: '60px',
-            width: 'auto'
-          }}
+          className="h-[60px] w-auto"
         />
-        <span style={{
-          fontSize: '2rem',
-          fontWeight: 'bold',
-          color: '#333'
-        }}>
+        <span className="text-3xl font-bold text-foreground">
           Professr
         </span>
       </div>

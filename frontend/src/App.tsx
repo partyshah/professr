@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, useParams, Navigate } from 'react-router-dom'
-import './App.css'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import SpeechSession from './SpeechSession'
 import Results from './Results'
 import Instructor from './Instructor'
@@ -191,338 +200,164 @@ function StudentFlow() {
   const assignment = assignments.find(a => a.id === parseInt(selectedAssignment))
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      backgroundColor: '#f5f5f5',
-      padding: '2rem'
-    }}>
+    <div className="min-h-screen flex flex-col items-center justify-between bg-gray-100 p-8">
       {/* Main content area */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        flex: 1,
-        justifyContent: 'center'
-      }}>
+      <div className="flex flex-col items-center flex-1 justify-center">
         {currentView === 'selection' && (
-          <div style={{
-            maxWidth: '800px',
-            width: '100%',
-            padding: '30px 60px 30px 60px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-          }}>
-            
-            <div style={{ marginBottom: '25px' }}>
-              <label htmlFor="student-select" style={{ 
-                display: 'block', 
-                marginBottom: '8px',
-                fontSize: '1.2rem',
-                fontWeight: '700',
-                color: '#333'
-              }}>
-                What is your name?
-              </label>
-              <select 
-                id="student-select"
-                value={selectedStudent} 
-                onChange={(e) => setSelectedStudent(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  fontSize: '16px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  outline: 'none',
-                  transition: 'border-color 0.3s ease',
-                  color: '#333'
-                }}
-                onFocus={(e) => (e.target as HTMLSelectElement).style.borderColor = '#333'}
-                onBlur={(e) => (e.target as HTMLSelectElement).style.borderColor = '#ddd'}
-              >
-                <option value="">Student</option>
-                {students
-                  .sort((a, b) => a.name.localeCompare(b.name))
-                  .map(student => (
-                    <option key={student.id} value={student.id}>
-                      {student.name}
-                    </option>
-                  ))}
-              </select>
-            </div>
+          <Card className="max-w-[800px] w-full overflow-visible">
+            <CardContent className="py-8 px-16 overflow-visible">
+              <div className="mb-6">
+                <label htmlFor="student-select" className="block mb-2 text-xl font-bold text-gray-800">
+                  What is your name?
+                </label>
+                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                  <SelectTrigger id="student-select">
+                    <SelectValue placeholder="Student" />
+                  </SelectTrigger>
+                  <SelectContent position="item-aligned">
+                    {students
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(student => (
+                        <SelectItem key={student.id} value={student.id.toString()}>
+                          {student.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label htmlFor="assignment-select" style={{ 
-                display: 'block', 
-                marginBottom: '8px',
-                fontSize: '1.2rem',
-                fontWeight: '700',
-                color: '#333'
-              }}>
-                Which readings are we discussing?
-              </label>
-              <select 
-                id="assignment-select"
-                value={selectedAssignment} 
-                onChange={(e) => setSelectedAssignment(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  fontSize: '16px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  outline: 'none',
-                  transition: 'border-color 0.3s ease',
-                  color: '#333'
-                }}
-                disabled={!selectedStudent}
-                onFocus={(e) => (e.target as HTMLSelectElement).style.borderColor = '#333'}
-                onBlur={(e) => (e.target as HTMLSelectElement).style.borderColor = '#ddd'}
-              >
-                <option value="">Assignment</option>
-                {assignments.map(assignment => (
-                  <option key={assignment.id} value={assignment.id}>
-                    {assignment.title}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="mb-5">
+                <label htmlFor="assignment-select" className="block mb-2 text-xl font-bold text-gray-800">
+                  Which readings are we discussing?
+                </label>
+                <Select
+                  value={selectedAssignment}
+                  onValueChange={setSelectedAssignment}
+                  disabled={!selectedStudent}
+                >
+                  <SelectTrigger id="assignment-select">
+                    <SelectValue placeholder="Assignment" />
+                  </SelectTrigger>
+                  <SelectContent position="item-aligned">
+                    {assignments.map(assignment => (
+                      <SelectItem key={assignment.id} value={assignment.id.toString()}>
+                        {assignment.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-              <button 
-                onClick={handleStartSession}
-                disabled={!isReady}
-                style={{
-                  width: '120px',
-                  padding: '12px 20px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  backgroundColor: isReady ? '#333' : '#ccc',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '20px',
-                  cursor: isReady ? 'pointer' : 'not-allowed',
-                  transition: 'background-color 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  if (isReady) {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#555'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (isReady) {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#333'
-                  }
-                }}
-              >
-                Enter
-              </button>
-            </div>
-            
-            {message && (
-              <p style={{ 
-                color: '#e74c3c', 
-                marginTop: '15px', 
-                textAlign: 'center',
-                fontSize: '14px'
-              }}>
-                {message}
-              </p>
-            )}
-          </div>
+              <div className="flex justify-center mt-5">
+                <Button
+                  onClick={handleStartSession}
+                  disabled={!isReady}
+                  className="w-[120px] px-5 py-3 text-base font-semibold rounded-full"
+                >
+                  Enter
+                </Button>
+              </div>
+
+              {message && (
+                <p className="text-red-500 mt-4 text-center text-sm">
+                  {message}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         )}
       </div>
 
       {/* Professr Logo - positioned based on current view */}
       {currentView === 'session' ? (
         // Logo at top left during session
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          left: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          zIndex: 1000
-        }}>
-          <img 
-            src={professrLogo} 
-            alt="Professr Logo" 
-            style={{
-              height: '50px',
-              width: 'auto'
-            }}
+        <div className="fixed top-5 left-5 flex items-center gap-4 z-[1000]">
+          <img
+            src={professrLogo}
+            alt="Professr Logo"
+            className="h-[50px] w-auto"
           />
-          <span style={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: '#333'
-          }}>
+          <span className="text-2xl font-bold text-gray-800">
             Professr
           </span>
         </div>
       ) : (
         // Logo at bottom during selection/results
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          padding: '1rem'
-        }}>
-          <img 
-            src={professrLogo} 
-            alt="Professr Logo" 
-            style={{
-              height: '60px',
-              width: 'auto'
-            }}
+        <div className="flex items-center gap-4 p-4">
+          <img
+            src={professrLogo}
+            alt="Professr Logo"
+            className="h-[60px] w-auto"
           />
-          <span style={{
-            fontSize: '2rem',
-            fontWeight: 'bold',
-            color: '#333'
-          }}>
+          <span className="text-3xl font-bold text-gray-800">
             Professr
           </span>
         </div>
       )}
-      
+
       {/* Directions Modal */}
-      {showDirectionsModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '40px',
-            borderRadius: '16px',
-            maxWidth: '500px',
-            width: '90%',
-            textAlign: 'left',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-          }}>
-            <h2 style={{
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              color: '#333',
-              marginBottom: '20px',
-              textAlign: 'center'
-            }}>
+      <Dialog open={showDirectionsModal} onOpenChange={setShowDirectionsModal}>
+        <DialogContent className="max-w-[500px] p-10">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-gray-800 text-center mb-5">
               Directions (actually read this...)
-            </h2>
-            
-            <ul style={{
-              fontSize: '1rem',
-              color: '#333',
-              lineHeight: '1.6',
-              marginBottom: '30px',
-              paddingLeft: '20px'
-            }}>
-              <li style={{ marginBottom: '12px' }}>
-                You will be discussing this week's readings as if you're having a normal conversation with your professor.
-              </li>
-              <li style={{ marginBottom: '12px' }}>
-                At the end, you'll receive feedback on whether your ideas reflected the key ideas from the readings.
-              </li>
-              <li style={{ marginBottom: '12px' }}>
-                To get the most out of this, don't just give 1 sentence answers! Justify your ideas in the context of the readings.
-              </li>
-              <li style={{ marginBottom: '12px' }}>
-                The conversation will last 10 minutes.
-              </li>
-            </ul>
-            
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={handleContinueToSession}
-                style={{
-                  padding: '12px 30px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  backgroundColor: '#333',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '20px',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.3s ease'
-                }}
-                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
-                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
-              >
-                Continue
-              </button>
-            </div>
+            </DialogTitle>
+          </DialogHeader>
+
+          <ul className="text-base text-gray-800 leading-relaxed mb-8 pl-5 list-disc">
+            <li className="mb-3">
+              You will be discussing this week's readings as if you're having a normal conversation with your professor.
+            </li>
+            <li className="mb-3">
+              At the end, you'll receive feedback on whether your ideas reflected the key ideas from the readings.
+            </li>
+            <li className="mb-3">
+              To get the most out of this, don't just give 1 sentence answers! Justify your ideas in the context of the readings.
+            </li>
+            <li className="mb-3">
+              The conversation will last 10 minutes.
+            </li>
+          </ul>
+
+          <div className="flex justify-center">
+            <Button
+              onClick={handleContinueToSession}
+              className="px-8 py-3 text-base font-semibold rounded-full"
+            >
+              Continue
+            </Button>
           </div>
-        </div>
-      )}
-      
+        </DialogContent>
+      </Dialog>
+
       {/* Already Completed Modal */}
-      {showCompletedModal && existingSessionData && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '30px',
-            borderRadius: '8px',
-            maxWidth: '400px',
-            width: '90%',
-            textAlign: 'center'
-          }}>
-            <h3>Session Already Completed</h3>
+      <Dialog open={showCompletedModal} onOpenChange={setShowCompletedModal}>
+        <DialogContent className="max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-center">Session Already Completed</DialogTitle>
+          </DialogHeader>
+          <div className="text-center space-y-4">
             <p>
               You have already completed this assignment on{' '}
-              {new Date(existingSessionData.completed_at).toLocaleDateString()}.
+              {new Date(existingSessionData?.completed_at).toLocaleDateString()}.
             </p>
-            <p style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
+            <p className="text-sm text-gray-600">
               Please select a different assignment to continue.
             </p>
-            
-            <button
+
+            <Button
               onClick={() => {
                 setShowCompletedModal(false)
                 setSelectedAssignment('')
                 setExistingSessionData(null)
               }}
-              style={{
-                marginTop: '20px',
-                padding: '10px 20px',
-                backgroundColor: '#2196F3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
+              className="mt-5"
             >
               Choose Different Assignment
-            </button>
+            </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {currentView === 'session' && student && assignment && (
         <SpeechSession

@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import heatherPhoto from './assets/Heather James photo.png'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 interface SpeechSessionProps {
   studentId: number
@@ -392,176 +394,91 @@ function SpeechSession({
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh' }}>
+    <div className="relative min-h-screen">
       {/* Logo removed - now handled by parent component */}
 
       {/* Big white container taking up most of the screen */}
-      <div style={{
-        backgroundColor: 'white',
-        width: '90vw',
-        margin: '40px auto',
-        minHeight: 'calc(100vh - 80px)',
-        borderRadius: '16px',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-        position: 'relative',
-        padding: '40px'
-      }}>
+      <Card className="w-[90vw] mx-auto my-10 min-h-[calc(100vh-80px)] relative p-10 shadow-lg">
         {/* Main content - centered */}
-        <div style={{ 
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          textAlign: 'center',
-          height: '100%',
-          justifyContent: 'center'
-        }}>
-          <h2>{assignmentTitle}</h2>
-          <p>Student: {studentName}</p>
+        <div className="flex flex-col items-center text-center h-full justify-center">
+          <h2 className="text-2xl font-semibold">{assignmentTitle}</h2>
+          <p className="text-base mt-2">Student: {studentName}</p>
         </div>
 
         {/* Timer in bottom right corner of white container */}
-        <div style={{
-          position: 'absolute',
-          bottom: '20px',
-          right: '20px',
-          fontSize: '24px',
-          fontWeight: 'bold',
-          color: timeLeft < 60 ? '#ff0000' : '#333'
-        }}>
+        <div className={`absolute bottom-5 right-5 text-2xl font-bold ${
+          timeLeft < 60 ? 'text-red-600' : 'text-gray-800'
+        }`}>
           {formatTime(timeLeft)}
         </div>
 
         {/* End Session button in bottom left corner of white container */}
         {transcript.length > 0 && (
-          <button
+          <Button
             onClick={handleComplete}
             disabled={!sessionInitialized}
-            style={{
-              position: 'absolute',
-              bottom: '20px',
-              left: '20px',
-              padding: '12px 20px',
-              backgroundColor: sessionInitialized ? '#f44336' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: sessionInitialized ? 'pointer' : 'not-allowed',
-              opacity: sessionInitialized ? 1 : 0.6,
-              fontSize: '14px'
-            }}
+            variant="destructive"
+            className="absolute bottom-5 left-5 text-sm disabled:opacity-60"
             title={sessionInitialized ? 'End the session' : 'Please wait for session to initialize'}
           >
             End Session
-          </button>
+          </Button>
         )}
 
       {/* Professor Avatar Area */}
-      <div style={{
-        height: '200px',
-        display: 'flex',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        margin: '30px 0',
-        position: 'relative',
-        gap: '40px'
-      }}>
+      <div className="h-[200px] flex flex-row justify-center items-center my-8 relative gap-10">
         {/* Professor Avatar Container */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div className="flex flex-col items-center">
           <img
             src={heatherPhoto}
             alt="Professor Heather James"
-            style={{
-              width: '140px',
-              height: '120px',
-              borderRadius: '70px 70px 60px 60px',
-              objectFit: 'cover',
-              position: 'relative',
-              zIndex: 2,
-              border: sessionState === 'ai_speaking' ? '3px solid #ff4444' :
-                      sessionState === 'loading_response' ? '3px solid #2196F3' :
-                      'none',
-              animation: (sessionState === 'ai_speaking' || sessionState === 'loading_response') ?
-                        'pulse-border 1.5s ease-in-out infinite' : 'none'
-            }}
+            className={`w-[140px] h-[120px] rounded-[70px_70px_60px_60px] object-cover relative z-[2] ${
+              sessionState === 'ai_speaking' ? 'border-[3px] border-[#ff4444] animate-pulse-border' :
+              sessionState === 'loading_response' ? 'border-[3px] border-blue-500 animate-pulse-border' :
+              ''
+            }`}
           />
 
           {/* Status Text */}
-          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+          <div className="mt-5 text-center">
             {sessionState === 'ai_speaking' && audioUrl && (
               <>
-                <p style={{ color: '#ff4444', fontWeight: 'bold' }}>AI Professor is ready to speak</p>
-                <button
+                <p className="text-[#ff4444] font-bold">AI Professor is ready to speak</p>
+                <Button
                   onClick={playAiResponse}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#ff4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    marginTop: '10px'
-                  }}
+                  className="mt-2.5 bg-[#ff4444] hover:bg-[#ff6666]"
                 >
                   🔊 Play Response
-                </button>
+                </Button>
               </>
             )}
             {sessionState === 'ai_speaking' && !audioUrl && (
-              <p style={{ color: '#000', fontWeight: 'bold' }}>AI Professor is speaking...</p>
+              <p className="text-black font-bold">AI Professor is speaking...</p>
             )}
             {sessionState === 'student_recording' && !isRecording && (
-              <p style={{ color: '#4CAF50' }}>Starting recording for your response...</p>
+              <p className="text-green-600">Starting recording for your response...</p>
             )}
             {sessionState === 'student_recording' && isRecording && (
-              <p style={{ color: '#000', fontWeight: 'bold' }}>Recording your turn...</p>
+              <p className="text-black font-bold">Recording your turn...</p>
             )}
             {sessionState === 'processing' && (
-              <p style={{ color: '#ff9800' }}>Processing your response...</p>
+              <p className="text-orange-600">Processing your response...</p>
             )}
             {sessionState === 'loading_response' && (
-              <p style={{ color: '#2196F3' }}>AI response loading...</p>
+              <p className="text-blue-500">AI response loading...</p>
             )}
           </div>
         </div>
 
         {/* AI Speech Bubble - Show when we have AI text (until next question is pressed) */}
         {currentAiResponse && (
-          <div style={{
-            maxWidth: '300px',
-            backgroundColor: '#f5f5f5',
-            border: '2px solid #ff4444',
-            borderRadius: '15px',
-            padding: '15px',
-            position: 'relative',
-            fontSize: '14px',
-            lineHeight: '1.4',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
+          <div className="max-w-[300px] bg-gray-100 border-2 border-[#ff4444] rounded-[15px] p-4 relative text-sm leading-relaxed shadow-md">
             {/* Speech bubble tail pointing to professor */}
-            <div style={{
-              position: 'absolute',
-              left: '-10px',
-              top: '20px',
-              width: '0',
-              height: '0',
-              borderTop: '10px solid transparent',
-              borderBottom: '10px solid transparent',
-              borderRight: '10px solid #ff4444'
-            }} />
-            <div style={{
-              position: 'absolute',
-              left: '-8px',
-              top: '21px',
-              width: '0',
-              height: '0',
-              borderTop: '9px solid transparent',
-              borderBottom: '9px solid transparent',
-              borderRight: '9px solid #f5f5f5'
-            }} />
+            <div className="absolute -left-[10px] top-5 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[10px] border-r-[#ff4444]" />
+            <div className="absolute -left-2 top-[21px] w-0 h-0 border-t-[9px] border-t-transparent border-b-[9px] border-b-transparent border-r-[9px] border-r-gray-100" />
 
             {/* AI Response Text */}
-            <div style={{ color: '#333', fontWeight: '500' }}>
+            <div className="text-gray-800 font-medium">
               {currentAiResponse}
             </div>
           </div>
@@ -570,25 +487,14 @@ function SpeechSession({
 
       {/* Waveform Visualization (Placeholder) */}
       {sessionState === 'student_recording' && isRecording && (
-        <div style={{
-          height: '60px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '20px 0'
-        }}>
-          <div style={{
-            display: 'flex',
-            gap: '3px',
-            alignItems: 'center'
-          }}>
+        <div className="h-[60px] flex items-center justify-center my-5">
+          <div className="flex gap-[3px] items-center">
             {[...Array(20)].map((_, i) => (
               <div
                 key={i}
+                className="w-[3px] bg-green-600 animate-bounce"
                 style={{
-                  width: '3px',
                   height: `${Math.random() * 40 + 10}px`,
-                  backgroundColor: '#4CAF50',
                   animation: `bounce ${0.5 + Math.random() * 0.5}s infinite alternate`
                 }}
               />
@@ -598,47 +504,23 @@ function SpeechSession({
       )}
 
       {/* Control Buttons */}
-      <div style={{ display: 'flex', gap: '10px', marginTop: '30px', justifyContent: 'center' }}>
+      <div className="flex gap-2.5 mt-8 justify-center">
         {sessionState === 'not_started' ? (
-          <button
+          <Button
             onClick={handleStartSession}
-            style={{
-              padding: '12px 40px',
-              fontSize: '16px',
-              fontWeight: '600',
-              backgroundColor: '#333',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              transition: 'background-color 0.3s ease'
-            }}
-            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
-            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
+            className="px-10 py-3 text-base font-semibold bg-gray-800 hover:bg-gray-700 rounded-full"
           >
             Start Assessment
-          </button>
+          </Button>
         ) : (
           <>
             {sessionState === 'student_recording' && isRecording && (
-              <button
+              <Button
                 onClick={submitRecording}
-                style={{
-                  padding: '12px 40px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  backgroundColor: '#333',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '20px',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.3s ease'
-                }}
-                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
-                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
+                className="px-10 py-3 text-base font-semibold bg-gray-800 hover:bg-gray-700 rounded-full"
               >
                 Next Question
-              </button>
+              </Button>
             )}
           </>
         )}
@@ -656,13 +538,13 @@ function SpeechSession({
             opacity: 0.4;
           }
         }
-        
+
         @keyframes bounce {
           0% { transform: scaleY(1); }
           100% { transform: scaleY(0.3); }
         }
       `}</style>
-      </div>
+      </Card>
     </div>
   )
 }

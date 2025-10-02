@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import jsPDF from 'jspdf'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface ResultsProps {
   studentName: string
@@ -11,16 +13,16 @@ interface ResultsProps {
   onBack: () => void
 }
 
-function Results({ 
-  studentName, 
-  assignmentTitle, 
-  transcript, 
-  score = 85, 
+function Results({
+  studentName,
+  assignmentTitle,
+  transcript,
+  score = 85,
   scoreCategory = 'green',
   feedback = 'Good analysis with clear examples. Consider exploring counterarguments more deeply.'
 }: ResultsProps) {
   const [showNotification, setShowNotification] = useState(false)
-  
+
   const getScoreEmoji = (category: string) => {
     switch(category) {
       case 'green': return '🟢'
@@ -43,7 +45,7 @@ function Results({
   const getOverallFeedback = (feedback: string) => {
     const lines = feedback.split('\n')
     const overallLine = lines.find(line => line.toLowerCase().includes('overall'))
-    
+
     if (overallLine) {
       // Find everything after "Overall:" including color indicators
       const match = overallLine.match(/overall:\s*(.+)/i)
@@ -64,7 +66,7 @@ function Results({
       .filter(line => !line.toLowerCase().includes('overall:'))
       .join('\n')
   }
-  
+
   const generatePDF = () => {
     const pdf = new jsPDF()
     let yPosition = 20
@@ -72,7 +74,7 @@ function Results({
     const lineHeight = 7
     const margin = 20
     const maxWidth = 170 // page width - margins
-    
+
     // Helper function to add text and handle page breaks
     const addText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
       pdf.setFontSize(fontSize)
@@ -81,9 +83,9 @@ function Results({
       } else {
         pdf.setFont('helvetica', 'normal')
       }
-      
+
       const lines = pdf.splitTextToSize(text, maxWidth)
-      
+
       lines.forEach((line: string) => {
         if (yPosition > pageHeight - 20) {
           pdf.addPage()
@@ -93,65 +95,65 @@ function Results({
         yPosition += lineHeight
       })
     }
-    
+
     // Header
     addText('Assessment Results', 18, true)
     yPosition += 5
-    
+
     // Student Info
     addText(`Student: ${studentName}`, 12, true)
     addText(`Assignment: ${assignmentTitle}`, 12, true)
     addText(`Date: ${new Date().toLocaleDateString()}`, 12)
     yPosition += 10
-    
+
     // Score Section
     addText('Score', 14, true)
     const scoreText = `${score}/100 (${scoreCategory.toUpperCase()})`
     addText(scoreText, 12)
     yPosition += 10
-    
+
     // AI Feedback Section
     addText('Feedback', 14, true)
     addText(feedback, 12)
     yPosition += 10
-    
+
     // Transcript Section
     addText('Conversation Transcript', 14, true)
     yPosition += 5
-    
+
     transcript.forEach((turn) => {
       // Check for page break before each turn
       if (yPosition > pageHeight - 40) {
         pdf.addPage()
         yPosition = 20
       }
-      
+
       const speaker = turn.speaker === 'student' ? 'Student' : 'AI Professor'
       addText(`${speaker}:`, 12, true)
       addText(turn.text, 11)
       yPosition += 5 // Add spacing between turns
     })
-    
+
     // Footer
     yPosition = pageHeight - 15
     pdf.setFontSize(10)
     pdf.setFont('helvetica', 'italic')
     pdf.text(`Generated on ${new Date().toLocaleString()}`, margin, yPosition)
-    
+
     // Generate filename
     const cleanName = studentName.replace(/[^a-z0-9]/gi, '_')
     const cleanAssignment = assignmentTitle.replace(/[^a-z0-9]/gi, '_')
     const date = new Date().toISOString().split('T')[0]
     const filename = `${cleanName}_${cleanAssignment}_${date}.pdf`
-    
+
     // Save the PDF
     pdf.save(filename)
   }
-  
+
   const handleDownloadPDF = () => {
     generatePDF()
     setShowNotification(true)
-    
+
     // Hide notification after 3 seconds
     setTimeout(() => {
       setShowNotification(false)
@@ -159,208 +161,132 @@ function Results({
   }
 
   return (
-    <div style={{ 
-      width: '90vw',
-      margin: '40px auto', 
-      padding: '40px',
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-      position: 'relative' 
-    }}>
+    <div className="w-[90vw] mx-auto my-10 p-10 bg-white rounded-xl shadow-lg relative">
       {/* Download Notification */}
       {showNotification && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          backgroundColor: '#4CAF50',
-          color: 'white',
-          padding: '12px 20px',
-          borderRadius: '4px',
-          boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
+        <div className="fixed top-5 right-5 bg-green-500 text-white px-5 py-3 rounded shadow-md z-[1000] flex items-center gap-2">
           ✓ Results saved to PDF
         </div>
       )}
-      
-      <h2 style={{ textAlign: 'center', marginBottom: '40px' }}>Assessment Feedback</h2>
-      
+
+      <h2 className="text-center mb-10 text-2xl font-semibold">Assessment Feedback</h2>
+
       {/* Two-column layout */}
-      <div style={{ display: 'flex', gap: '40px', marginBottom: '40px', position: 'relative' }}>
-        
+      <div className="flex gap-10 mb-10 relative">
+
         {/* Left Column - Scoring and Feedback */}
-        <div style={{ width: 'calc(50% - 20px)' }}>
+        <div className="w-[calc(50%-20px)]">
           {/* Student Info */}
-          <div style={{ marginBottom: '30px' }}>
+          <div className="mb-8">
             <p><strong>Student:</strong> {studentName}</p>
             <p><strong>Assignment:</strong> {assignmentTitle}</p>
           </div>
 
           {/* Score Section */}
-          <div style={{
-            padding: '15px 20px',
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <h3>Overall Assessment</h3>
-            <div style={{ 
-              textAlign: 'center',
-              margin: '15px 0'
-            }}>
-              <div style={{ 
-                fontSize: '80px', 
-                marginBottom: '10px'
-              }}>
-                {getScoreEmoji(scoreCategory)}
+          <Card className="mb-5">
+            <CardHeader>
+              <CardTitle>Overall Assessment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center my-4">
+                <div className="text-[80px] mb-2.5">
+                  {getScoreEmoji(scoreCategory)}
+                </div>
+                {getOverallFeedback(feedback) ? (
+                  <div className="text-base text-gray-800 text-center max-w-md mx-auto leading-snug">
+                    {getOverallFeedback(feedback)}
+                  </div>
+                ) : (
+                  <div className="text-lg font-bold text-gray-800">
+                    {getScoreText(scoreCategory)}
+                  </div>
+                )}
               </div>
-              {getOverallFeedback(feedback) ? (
-                <div style={{
-                  fontSize: '16px',
-                  color: '#333',
-                  textAlign: 'center',
-                  maxWidth: '400px',
-                  margin: '0 auto',
-                  lineHeight: '1.4'
-                }}>
-                  {getOverallFeedback(feedback)}
-                </div>
-              ) : (
-                <div style={{
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  color: '#333'
-                }}>
-                  {getScoreText(scoreCategory)}
-                </div>
-              )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Feedback Section */}
-          <div style={{
-            padding: '20px',
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <h3>Feedback</h3>
-            <div style={{ 
-              whiteSpace: 'pre-line', 
-              lineHeight: '1.6',
-              fontSize: '14px',
-              marginTop: '15px'
-            }}>
-              {getDetailedFeedback(feedback).split('\n').map((line, index) => {
-                // Skip empty lines
-                if (line.trim() === '') {
-                  return <br key={index} />
-                }
-                
-                // Check if this line is a learning objective title
-                const isObjectiveTitle = line.includes('Explain and Apply Institutions & Principles') ||
-                                       line.includes('Interpret and Compare Theories & Justifications') ||
-                                       line.includes('Evaluate Effectiveness & Fairness') ||
-                                       line.includes('Propose and Justify Reforms')
-                
-                // Simple emoji replacement - handle all common patterns
-                let processedLine = line
-                processedLine = processedLine.replace(/\[Green\]/gi, '🟢')
-                processedLine = processedLine.replace(/\[Yellow\]/gi, '🟡')  
-                processedLine = processedLine.replace(/\[Red\]/gi, '🔴')
-                processedLine = processedLine.replace(/:\s*Green\b/gi, ': 🟢')
-                processedLine = processedLine.replace(/:\s*Yellow\b/gi, ': 🟡')
-                processedLine = processedLine.replace(/:\s*Red\b/gi, ': 🔴')
-                processedLine = processedLine.replace(/\bGreen\b/g, '🟢')
-                processedLine = processedLine.replace(/\bYellow\b/g, '🟡')
-                processedLine = processedLine.replace(/\bRed\b/g, '🔴')
-                
-                // If it's an objective title, make the title part bold
-                if (isObjectiveTitle) {
-                  const colonIndex = processedLine.indexOf(':')
-                  if (colonIndex > -1) {
-                    const title = processedLine.substring(0, colonIndex)
-                    const rest = processedLine.substring(colonIndex)
-                    return (
-                      <div key={index} style={{ marginBottom: '8px' }}>
-                        <strong>{title}</strong>{rest}
-                      </div>
-                    )
+          <Card>
+            <CardHeader>
+              <CardTitle>Feedback</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="whitespace-pre-line leading-relaxed text-sm mt-4">
+                {getDetailedFeedback(feedback).split('\n').map((line, index) => {
+                  // Skip empty lines
+                  if (line.trim() === '') {
+                    return <br key={index} />
                   }
-                }
-                
-                return (
-                  <div key={index} style={{ marginBottom: '8px' }}>
-                    {processedLine}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+
+                  // Check if this line is a learning objective title
+                  const isObjectiveTitle = line.includes('Explain and Apply Institutions & Principles') ||
+                                         line.includes('Interpret and Compare Theories & Justifications') ||
+                                         line.includes('Evaluate Effectiveness & Fairness') ||
+                                         line.includes('Propose and Justify Reforms')
+
+                  // Simple emoji replacement - handle all common patterns
+                  let processedLine = line
+                  processedLine = processedLine.replace(/\[Green\]/gi, '🟢')
+                  processedLine = processedLine.replace(/\[Yellow\]/gi, '🟡')
+                  processedLine = processedLine.replace(/\[Red\]/gi, '🔴')
+                  processedLine = processedLine.replace(/:\s*Green\b/gi, ': 🟢')
+                  processedLine = processedLine.replace(/:\s*Yellow\b/gi, ': 🟡')
+                  processedLine = processedLine.replace(/:\s*Red\b/gi, ': 🔴')
+                  processedLine = processedLine.replace(/\bGreen\b/g, '🟢')
+                  processedLine = processedLine.replace(/\bYellow\b/g, '🟡')
+                  processedLine = processedLine.replace(/\bRed\b/g, '🔴')
+
+                  // If it's an objective title, make the title part bold
+                  if (isObjectiveTitle) {
+                    const colonIndex = processedLine.indexOf(':')
+                    if (colonIndex > -1) {
+                      const title = processedLine.substring(0, colonIndex)
+                      const rest = processedLine.substring(colonIndex)
+                      return (
+                        <div key={index} className="mb-2">
+                          <strong>{title}</strong>{rest}
+                        </div>
+                      )
+                    }
+                  }
+
+                  return (
+                    <div key={index} className="mb-2">
+                      {processedLine}
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column - Transcript */}
-        <div style={{ 
-          flex: 1, 
-          position: 'absolute',
-          right: 0,
-          top: '48px',
-          bottom: 0,
-          width: 'calc(50% - 20px)'
-        }}>
-          <h3 style={{ marginBottom: '15px' }}>Conversation Transcript</h3>
-          <div style={{
-            position: 'absolute',
-            top: '45px',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            overflowY: 'auto',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            padding: '20px',
-            backgroundColor: 'white'
-          }}>
+        <div className="flex-1 absolute right-0 top-12 bottom-0 w-[calc(50%-20px)]">
+          <h3 className="mb-4 text-lg font-semibold">Conversation Transcript</h3>
+          <div className="absolute top-11 bottom-0 left-0 right-0 overflow-y-auto border border-gray-300 rounded-lg p-5 bg-white">
             {transcript.map((turn, index) => (
-              <div key={index} style={{
-                marginBottom: '15px',
-                padding: '10px',
-                backgroundColor: turn.speaker === 'student' ? '#e3f2fd' : '#f5f5f5',
-                borderRadius: '8px'
-              }}>
+              <div
+                key={index}
+                className={`mb-4 p-2.5 rounded-lg ${
+                  turn.speaker === 'student' ? 'bg-blue-50' : 'bg-gray-100'
+                }`}
+              >
                 <strong>{turn.speaker === 'student' ? 'Student' : 'AI Professor'}:</strong>
-                <p style={{ margin: '5px 0' }}>{turn.text}</p>
+                <p className="my-1.5">{turn.text}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <button
+      <div className="flex justify-center">
+        <Button
           onClick={handleDownloadPDF}
-          style={{
-            padding: '12px 55px',
-            fontSize: '16px',
-            fontWeight: '600',
-            backgroundColor: '#333',
-            color: 'white',
-            border: 'none',
-            borderRadius: '20px',
-            cursor: 'pointer',
-            transition: 'background-color 0.3s ease'
-          }}
-          onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#555'}
-          onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#333'}
+          className="px-14 py-3 text-base font-semibold bg-gray-800 text-white rounded-full hover:bg-gray-700 transition-colors"
         >
           Download PDF
-        </button>
+        </Button>
       </div>
     </div>
   )
