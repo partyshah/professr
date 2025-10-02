@@ -25,7 +25,8 @@ function Instructor() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  
+  const [classInfo, setClassInfo] = useState<any>(null)
+
   // Filters
   const [selectedAssignment, setSelectedAssignment] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -82,26 +83,48 @@ function Instructor() {
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-  const handleLogin = () => {
-    if (password === 'password') {
-      setIsAuthenticated(true)
-      setError('')
-      loadData()
-    } else {
-      setError('Incorrect password')
+  const handleLogin = async () => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const response = await fetch(`${apiUrl}/verify-professor-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: password.trim() })
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.valid) {
+        // Store class info in state
+        setClassInfo(data.class)
+        setIsAuthenticated(true)
+        setError('')
+        loadData(data.class.id)
+      } else {
+        setError(data.detail || 'Invalid password')
+      }
+    } catch (err) {
+      console.error('Error verifying password:', err)
+      setError('Connection error. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const loadData = async () => {
+  const loadData = async (classId: number) => {
     setLoading(true)
     try {
-      // Load sessions
-      const sessionsResponse = await fetch(`${apiUrl}/test-data`)
+      // Load sessions filtered by class_id
+      const sessionsResponse = await fetch(`${apiUrl}/test-data?class_id=${classId}`)
       const sessionsData = await sessionsResponse.json()
       setSessions(sessionsData.sessions)
 
-      // Load assignments for filter dropdown
-      const assignmentsResponse = await fetch(`${apiUrl}/assignments`)
+      // Load assignments for filter dropdown filtered by class_id
+      const assignmentsResponse = await fetch(`${apiUrl}/assignments?class_id=${classId}`)
       const assignmentsData = await assignmentsResponse.json()
       setAssignments(assignmentsData.assignments)
     } catch (error) {
@@ -125,12 +148,18 @@ function Instructor() {
       
       if (response.ok) {
         setDeleteModal({show: false, session: null})
-        loadData() // Refresh the table
+        handleRefreshData() // Refresh the table
       } else {
         setError('Failed to delete session')
       }
     } catch (error) {
       setError('Error deleting session')
+    }
+  }
+
+  const handleRefreshData = () => {
+    if (classInfo) {
+      loadData(classInfo.id)
     }
   }
 
@@ -255,6 +284,15 @@ function Instructor() {
     <div style={{ padding: '20px clamp(2rem, 5vw, 8rem)', maxWidth: '95%', margin: '0 auto' }}>
       <div style={{ marginBottom: '30px' }}>
         <h1>Instructor Dashboard</h1>
+        {classInfo && (
+          <p style={{
+            fontSize: '1.1rem',
+            color: '#666',
+            marginTop: '10px'
+          }}>
+            {classInfo.class_name} • {classInfo.professor_name}
+          </p>
+        )}
       </div>
 
       {/* Filters */}

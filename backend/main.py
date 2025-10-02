@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session as DBSession
 from dotenv import load_dotenv
 import openai
 from database import get_db
-from models import Student, Assignment, Session
+from models import Student, Assignment, Session, Class
 from ai_service import AITutorService
 
 load_dotenv()
@@ -81,46 +81,51 @@ async def seed_data(db: DBSession = Depends(get_db)):
         existing_students = db.query(Student).first()
         if existing_students:
             return {"status": "Data already seeded"}
-        
-        # Create students
+
+        # Create students (all assigned to class_id = 1)
         students = [
-            Student(name="Alice Johnson"),
-            Student(name="Bob Smith"),
-            Student(name="Carol Davis"),
-            Student(name="David Wilson"),
-            Student(name="Emma Brown"),
+            Student(name="Alice Johnson", class_id=1),
+            Student(name="Bob Smith", class_id=1),
+            Student(name="Carol Davis", class_id=1),
+            Student(name="David Wilson", class_id=1),
+            Student(name="Emma Brown", class_id=1),
         ]
         for student in students:
             db.add(student)
         db.commit()
-        
-        # Create assignments
+
+        # Create assignments (all assigned to class_id = 1)
         assignments = [
             Assignment(
                 title="Poetry Analysis",
-                description="Analyze the themes and literary devices in the provided poem"
+                description="Analyze the themes and literary devices in the provided poem",
+                class_id=1
             ),
             Assignment(
                 title="Historical Event Discussion",
-                description="Discuss the causes and effects of the American Revolution"
+                description="Discuss the causes and effects of the American Revolution",
+                class_id=1
             ),
             Assignment(
                 title="Scientific Method",
-                description="Explain how you would design an experiment to test plant growth"
+                description="Explain how you would design an experiment to test plant growth",
+                class_id=1
             ),
             Assignment(
                 title="Character Analysis",
-                description="Analyze the main character's development in To Kill a Mockingbird"
+                description="Analyze the main character's development in To Kill a Mockingbird",
+                class_id=1
             ),
             Assignment(
                 title="Current Events",
-                description="Discuss a recent news story and its broader implications"
+                description="Discuss a recent news story and its broader implications",
+                class_id=1
             ),
         ]
         for assignment in assignments:
             db.add(assignment)
         db.commit()
-        
+
         return {
             "status": "success",
             "students_created": len(students),
@@ -130,11 +135,14 @@ async def seed_data(db: DBSession = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error seeding data: {str(e)}")
 
 @app.get("/students")
-async def get_students(db: DBSession = Depends(get_db)):
-    """Get all students for dropdown selection"""
+async def get_students(class_id: Optional[int] = None, db: DBSession = Depends(get_db)):
+    """Get all students for dropdown selection, optionally filtered by class_id"""
     try:
-        students = db.query(Student).all()
-        return {"students": [{"id": s.id, "name": s.name} for s in students]}
+        query = db.query(Student)
+        if class_id is not None:
+            query = query.filter(Student.class_id == class_id)
+        students = query.all()
+        return {"students": [{"id": s.id, "name": s.name, "class_id": s.class_id} for s in students]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching students: {str(e)}")
 
@@ -161,20 +169,24 @@ async def check_session(student_id: int, assignment_id: int, db: DBSession = Dep
         raise HTTPException(status_code=500, detail=f"Error checking session: {str(e)}")
 
 @app.get("/assignments")
-async def get_assignments(db: DBSession = Depends(get_db)):
-    """Get all assignments for dropdown selection"""
+async def get_assignments(class_id: Optional[int] = None, db: DBSession = Depends(get_db)):
+    """Get all assignments for dropdown selection, optionally filtered by class_id"""
     try:
-        assignments = db.query(Assignment).all()
+        query = db.query(Assignment)
+        if class_id is not None:
+            query = query.filter(Assignment.class_id == class_id)
+        assignments = query.all()
         return {"assignments": [
             {
-                "id": a.id, 
-                "title": a.title, 
+                "id": a.id,
+                "title": a.title,
                 "description": a.description,
                 "week_number": a.week_number,
                 "pdf_urls": [f"/static/assignments/{path}" for path in a.pdf_paths] if a.pdf_paths else [],
                 "solution_pdf_urls": [f"/static/assignments/{path}" for path in a.solution_pdf_paths] if a.solution_pdf_paths else [],
-                "has_reading_text": bool(a.reading_text)
-            } 
+                "has_reading_text": bool(a.reading_text),
+                "class_id": a.class_id
+            }
             for a in assignments
         ]}
     except Exception as e:
@@ -229,17 +241,33 @@ async def start_ai_session(request: StartSessionRequest, db: DBSession = Depends
         if not assignment:
             raise HTTPException(status_code=404, detail="Assignment not found")
 
+        # Get class to fetch class-specific prompts
+        class_obj = db.query(Class).filter(Class.id == assignment.class_id).first()
+        if not class_obj:
+            raise HTTPException(status_code=404, detail="Class not found")
+
         # Create session ID
         session_id = f"session_{request.student_id}_{request.assignment_id}_{int(datetime.now().timestamp())}"
 
         # Initialize AI service with reading text if available, otherwise use PDFs
+        # Pass class-specific prompts (will fall back to defaults if None)
         if assignment.reading_text:
-            result = ai_service.initialize_session_with_text(session_id, assignment.reading_text)
+            result = ai_service.initialize_session_with_text(
+                session_id,
+                assignment.reading_text,
+                tutor_prompt=class_obj.tutor_prompt,
+                evaluation_prompt=class_obj.evaluation_prompt
+            )
         elif assignment.pdf_paths:
-            result = ai_service.initialize_session(session_id, assignment.pdf_paths)
+            result = ai_service.initialize_session(
+                session_id,
+                assignment.pdf_paths,
+                tutor_prompt=class_obj.tutor_prompt,
+                evaluation_prompt=class_obj.evaluation_prompt
+            )
         else:
             raise HTTPException(status_code=400, detail="Assignment has no reading material")
-        
+
         if not result['success']:
             raise HTTPException(status_code=500, detail=result['error'])
         
@@ -299,17 +327,40 @@ async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
             assignment_id = int(parts[2])
         except:
             raise HTTPException(status_code=400, detail="Invalid session ID format")
-        
+
+        # Get class_id from student or assignment
+        student = db.query(Student).filter(Student.id == student_id).first()
+        if not student:
+            raise HTTPException(status_code=404, detail="Student not found")
+
+        # Check if session already exists (handles duplicate requests from double-clicks)
+        existing_session = db.query(Session).filter(
+            Session.student_id == student_id,
+            Session.assignment_id == assignment_id
+        ).first()
+
+        if existing_session:
+            # Session already evaluated - return existing results (idempotent)
+            logger.info(f"Session already exists for student {student_id}, assignment {assignment_id}. Returning existing evaluation.")
+            return {
+                "session_id": existing_session.id,
+                "score": existing_session.final_score,
+                "category": existing_session.score_category,
+                "feedback": existing_session.ai_feedback,
+                "question_count": evaluation.get('question_count', 0)
+            }
+
         # Get session stats
         stats = ai_service.get_session_stats(session_id)
-        
+
         # Get the formatted transcript for database storage
         formatted_transcript = ai_service.get_formatted_transcript(session_id)
-        
+
         # Create session record in database
         new_session = Session(
             student_id=student_id,
             assignment_id=assignment_id,
+            class_id=student.class_id,
             status="completed",
             started_at=datetime.now(),
             completed_at=datetime.now(),
@@ -318,7 +369,7 @@ async def evaluate_ai_session(session_id: str, db: DBSession = Depends(get_db)):
             score_category=evaluation.get('category', 'yellow'),
             ai_feedback=evaluation.get('feedback', 'No feedback available')
         )
-        
+
         db.add(new_session)
         db.commit()
         db.refresh(new_session)
@@ -449,21 +500,96 @@ async def text_to_speech(request: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Text-to-speech error: {str(e)}")
 
-@app.get("/test-data")
-async def get_test_data(db: DBSession = Depends(get_db)):
+@app.get("/classes")
+async def get_classes(db: DBSession = Depends(get_db)):
+    """Get all classes"""
     try:
-        # Get all sessions with student and assignment names
-        sessions = db.query(Session).all()
-        
+        classes = db.query(Class).all()
+        return {"classes": [{"id": c.id, "class_name": c.class_name, "professor_name": c.professor_name, "access_code": c.access_code} for c in classes]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching classes: {str(e)}")
+
+@app.post("/verify-class-code")
+async def verify_class_code(request: dict, db: DBSession = Depends(get_db)):
+    """Verify a class access code and return class information"""
+    try:
+        code = request.get("code", "").strip().upper()
+
+        if not code:
+            raise HTTPException(status_code=400, detail="Access code is required")
+
+        if len(code) != 6:
+            raise HTTPException(status_code=400, detail="Access code must be 6 characters")
+
+        # Look up class by access code
+        class_obj = db.query(Class).filter(Class.access_code == code).first()
+
+        if not class_obj:
+            raise HTTPException(status_code=404, detail="Invalid access code")
+
+        return {
+            "valid": True,
+            "class": {
+                "id": class_obj.id,
+                "class_name": class_obj.class_name,
+                "professor_name": class_obj.professor_name,
+                "access_code": class_obj.access_code
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verifying access code: {str(e)}")
+
+@app.post("/verify-professor-password")
+async def verify_professor_password(request: dict, db: DBSession = Depends(get_db)):
+    """Verify a professor password and return class information"""
+    try:
+        password = request.get("password", "").strip()
+
+        if not password:
+            raise HTTPException(status_code=400, detail="Password is required")
+
+        # Look up class by professor password
+        class_obj = db.query(Class).filter(Class.professor_password == password).first()
+
+        if not class_obj:
+            raise HTTPException(status_code=404, detail="Invalid password")
+
+        return {
+            "valid": True,
+            "class": {
+                "id": class_obj.id,
+                "class_name": class_obj.class_name,
+                "professor_name": class_obj.professor_name
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error verifying professor password: {str(e)}")
+
+@app.get("/test-data")
+async def get_test_data(class_id: Optional[int] = None, db: DBSession = Depends(get_db)):
+    try:
+        # Get all sessions with student and assignment names, optionally filtered by class_id
+        query = db.query(Session)
+        if class_id is not None:
+            query = query.filter(Session.class_id == class_id)
+        sessions = query.all()
+
         result = []
         for session in sessions:
             student = db.query(Student).filter(Student.id == session.student_id).first()
             assignment = db.query(Assignment).filter(Assignment.id == session.assignment_id).first()
-            
+            class_obj = db.query(Class).filter(Class.id == session.class_id).first()
+
             result.append({
                 "session_id": session.id,
                 "student_name": student.name if student else "Unknown",
                 "assignment_title": assignment.title if assignment else "Unknown",
+                "class_name": class_obj.class_name if class_obj else "Unknown",
+                "professor_name": class_obj.professor_name if class_obj else "Unknown",
                 "status": session.status,
                 "final_score": session.final_score,
                 "score_category": session.score_category,
@@ -471,7 +597,7 @@ async def get_test_data(db: DBSession = Depends(get_db)):
                 "ai_feedback": session.ai_feedback,
                 "completed_at": session.completed_at
             })
-        
+
         return {"sessions": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching test data: {str(e)}")

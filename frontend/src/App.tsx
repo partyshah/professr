@@ -1,11 +1,43 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useParams, Navigate, useNavigate } from 'react-router-dom'
 import './App.css'
 import SpeechSession from './SpeechSession'
 import Results from './Results'
 import Instructor from './Instructor'
 import RoleSelection from './RoleSelection'
+import ClassCodeEntry from './ClassCodeEntry'
 import professrLogo from './assets/Professr Logo.png'
+
+// Protected Route Wrapper for Student Flow
+function ProtectedStudentRoute() {
+  const { classId } = useParams<{ classId: string }>()
+
+  // Check if class info exists and matches the URL param
+  const storedClassInfo = sessionStorage.getItem('classInfo')
+
+  if (!storedClassInfo) {
+    // No authentication, redirect to code entry
+    return <Navigate to="/student" replace />
+  }
+
+  try {
+    const classInfo = JSON.parse(storedClassInfo)
+
+    // Verify the classId in URL matches the authenticated class
+    if (classInfo.id.toString() !== classId) {
+      // Class ID mismatch, clear storage and redirect
+      sessionStorage.removeItem('classInfo')
+      return <Navigate to="/student" replace />
+    }
+
+    // Valid authentication, render StudentFlow
+    return <StudentFlow />
+  } catch (error) {
+    // Invalid JSON in storage, clear and redirect
+    sessionStorage.removeItem('classInfo')
+    return <Navigate to="/student" replace />
+  }
+}
 
 interface Student {
   id: number
@@ -22,6 +54,7 @@ type AppView = 'selection' | 'session' | 'results'
 
 // Create a separate component for the student flow
 function StudentFlow() {
+  const { classId } = useParams<{ classId: string }>()
   const [currentView, setCurrentView] = useState<AppView>('selection')
   const [students, setStudents] = useState<Student[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
@@ -33,33 +66,46 @@ function StudentFlow() {
   const [showCompletedModal, setShowCompletedModal] = useState(false)
   const [existingSessionData, setExistingSessionData] = useState<any>(null)
   const [showDirectionsModal, setShowDirectionsModal] = useState(false)
-  
+  const [classInfo, setClassInfo] = useState<any>(null)
+
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-  
+
+  // Load class info from sessionStorage (already validated by ProtectedStudentRoute)
   useEffect(() => {
-    // Load students and assignments on mount
-    loadData()
+    const storedClassInfo = sessionStorage.getItem('classInfo')
+    if (storedClassInfo) {
+      const parsedInfo = JSON.parse(storedClassInfo)
+      setClassInfo(parsedInfo)
+    }
   }, [])
+
+  useEffect(() => {
+    // Load students and assignments when class info is available
+    if (classInfo) {
+      loadData()
+    }
+  }, [classInfo])
 
   const loadData = async () => {
     try {
       console.log('API URL:', apiUrl)
-      
+      console.log('Loading data for class:', classInfo?.id)
+
       // Seed data if needed
       const seedResponse = await fetch(`${apiUrl}/seed-data`, { method: 'POST' })
       console.log('Seed response:', seedResponse.status)
-      
-      // Fetch students
-      const studentsResponse = await fetch(`${apiUrl}/students`)
+
+      // Fetch students filtered by class_id
+      const studentsResponse = await fetch(`${apiUrl}/students?class_id=${classInfo.id}`)
       console.log('Students response:', studentsResponse.status)
       if (!studentsResponse.ok) {
         throw new Error(`Students API failed: ${studentsResponse.status}`)
       }
       const studentsData = await studentsResponse.json()
       setStudents(studentsData.students)
-      
-      // Fetch assignments
-      const assignmentsResponse = await fetch(`${apiUrl}/assignments`)
+
+      // Fetch assignments filtered by class_id
+      const assignmentsResponse = await fetch(`${apiUrl}/assignments?class_id=${classInfo.id}`)
       console.log('Assignments response:', assignmentsResponse.status)
       if (!assignmentsResponse.ok) {
         throw new Error(`Assignments API failed: ${assignmentsResponse.status}`)
@@ -509,7 +555,8 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<RoleSelection />} />
-      <Route path="/student" element={<StudentFlow />} />
+      <Route path="/student" element={<ClassCodeEntry />} />
+      <Route path="/student/:classId" element={<ProtectedStudentRoute />} />
       <Route path="/professor" element={<Instructor />} />
       <Route path="/instructor" element={<Instructor />} />
     </Routes>

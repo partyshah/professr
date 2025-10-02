@@ -21,7 +21,7 @@ class AITutorService:
         self.client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         self.sessions = {}  # Store conversation managers by session_id (in-memory)
         
-    def initialize_session_with_text(self, session_id: str, reading_text: str) -> Dict:
+    def initialize_session_with_text(self, session_id: str, reading_text: str, tutor_prompt: str = None, evaluation_prompt: str = None) -> Dict:
         """Initialize a new tutoring session with direct text content (faster than PDF extraction)"""
         try:
             from datetime import datetime
@@ -32,14 +32,16 @@ class AITutorService:
             # Use the reading text directly (no PDF extraction needed)
             pdf_context = f"=== Reading Material ===\n{reading_text}"
 
-            # Store session data with start time
+            # Store session data with start time and class-specific prompts
             self.sessions[session_id] = {
                 'manager': conv_manager,
                 'pdf_context': pdf_context,
                 'conversation_history': [],
                 'pdf_paths': [],  # No PDF paths since we're using text
                 'start_time': datetime.now(),
-                'reading_text': reading_text  # Store the original text
+                'reading_text': reading_text,  # Store the original text
+                'tutor_prompt': tutor_prompt or TUTOR_SYSTEM_PROMPT,  # Use class prompt or default
+                'evaluation_prompt': evaluation_prompt or EVALUATION_SYSTEM_PROMPT  # Use class prompt or default
             }
 
             logger.info(f"Initialized session {session_id} with reading text ({len(reading_text)} chars)")
@@ -56,27 +58,29 @@ class AITutorService:
                 'error': str(e)
             }
 
-    def initialize_session(self, session_id: str, pdf_paths: List[str]) -> Dict:
+    def initialize_session(self, session_id: str, pdf_paths: List[str], tutor_prompt: str = None, evaluation_prompt: str = None) -> Dict:
         """Initialize a new tutoring session with PDF context"""
         try:
             from datetime import datetime
-            
+
             # Extract text from PDFs
             pdf_texts = extract_texts_from_pdfs(pdf_paths)
             pdf_context = format_pdf_context(pdf_texts)
-            
+
             # Create conversation manager for this session
             conv_manager = ConversationManager()
-            
-            # Store session data with start time
+
+            # Store session data with start time and class-specific prompts
             self.sessions[session_id] = {
                 'manager': conv_manager,
                 'pdf_context': pdf_context,
                 'conversation_history': [],
                 'pdf_paths': pdf_paths,
-                'start_time': datetime.now()
+                'start_time': datetime.now(),
+                'tutor_prompt': tutor_prompt or TUTOR_SYSTEM_PROMPT,  # Use class prompt or default
+                'evaluation_prompt': evaluation_prompt or EVALUATION_SYSTEM_PROMPT  # Use class prompt or default
             }
-            
+
             logger.info(f"Initialized session {session_id} with {len(pdf_paths)} PDFs")
             return {
                 'success': True,
@@ -147,10 +151,13 @@ class AITutorService:
         try:
             # Check if this should be the final question
             final_question = remaining_seconds <= 45
-            
+
+            # Get tutor prompt from session (use default if not set)
+            tutor_prompt = session_data.get('tutor_prompt', TUTOR_SYSTEM_PROMPT)
+
             # Format messages for API with time context
             messages = conv_manager.format_for_api(
-                system_prompt=TUTOR_SYSTEM_PROMPT,
+                system_prompt=tutor_prompt,
                 pdf_context=pdf_context,
                 conversation_history=conversation_history,
                 new_message=user_message,
@@ -257,8 +264,11 @@ class AITutorService:
             logger.error(f"Session {session_id} not found in memory or database")
             return {'error': 'Session not found'}
 
-        # Remove reference to session_data that might not exist
-        
+        # Get evaluation prompt from session if available, otherwise use default
+        evaluation_prompt = EVALUATION_SYSTEM_PROMPT
+        if session_id in self.sessions:
+            evaluation_prompt = self.sessions[session_id].get('evaluation_prompt', EVALUATION_SYSTEM_PROMPT)
+
         try:
             # Check student participation levels before evaluation
             student_messages = [msg for msg in conversation_history if msg['role'] == 'user']
@@ -280,11 +290,11 @@ class AITutorService:
                 for msg in conversation_history
             ])
             
-            # Call OpenAI for evaluation
+            # Call OpenAI for evaluation using class-specific evaluation prompt
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": EVALUATION_SYSTEM_PROMPT},
+                    {"role": "system", "content": evaluation_prompt},
                     {"role": "user", "content": f"Evaluate this student assessment:\n\n{conversation_text}"}
                 ],
                 temperature=0.3,
